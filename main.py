@@ -1,4 +1,5 @@
 import tkinter as tk
+import calendar
 import datetime
 
 #This create a window object to use Tkinter function
@@ -9,9 +10,12 @@ window.title("Limiter")
 window.geometry("1600x900")
 
 #Get the current year, month, day
-current_year = datetime.datetime.now().year
-current_month = datetime.datetime.now().month
-current_day = datetime.datetime.now().day
+today = datetime.date.today()
+current_year = today.year
+current_month = today.month
+current_day = today.day
+current_day_of_month = calendar.monthcalendar(current_year, current_month)
+
 
 #This is enum for Months and Days
 months = [
@@ -42,6 +46,12 @@ days = [
 def update_month_label():
     month_label.config(text=months[current_month - 1])
 
+def update_year_label():
+    year_label.config(text=current_year)
+
+def update_day_labebl():
+    day_label.config(text=str(current_day_of_month[week][day]))
+
 def next_month():
     global current_month
     global current_year
@@ -52,6 +62,7 @@ def next_month():
         current_year += 1
 
     update_month_label()
+    update_year_label()
     print(current_month)
 
 def prev_month():
@@ -64,6 +75,7 @@ def prev_month():
         current_year -= 1
         
     update_month_label()
+    update_year_label()
     print(current_month)
 
 calendar = tk.Frame(window)
@@ -75,6 +87,13 @@ month_label = tk.Label(
     font=("Arial", 12)
 )
 month_label.grid(row=0, column=3, padx=10, pady=10)
+
+year_label = tk.Label(
+    calendar,
+    text=current_year,
+    font=("Arial", 12)
+)
+year_label.grid(row=0, column=5, padx=0, pady=0)
 
 button_next_month = tk.Button(
     calendar,
@@ -99,24 +118,26 @@ for column, day in enumerate(days):
 
     label.grid(row=1, column=column, padx=10, pady=10)
 
-for day in range(1, 31):
-    row = ((day - 1) // 7) + 2
-    column = (day - 1) % 7
+week_size = len(current_day_of_month)
+day_of_week = len(current_day_of_month[0])
+for week in range(0, week_size):
+    row = week + 2
+    for day in range(0, day_of_week):
+        column = day
+        day_label = tk.Label(
+            calendar,
+            text=str(current_day_of_month[week][day]),
+            width=12,
+            height=5,
+            relief="solid"
+        )
 
-    label = tk.Label(
-        calendar,
-        text=str(day),
-        width=12,
-        height=5,
-        relief="solid"
-    )
-
-    label.grid(
-        row=row,
-        column=column,
-        padx=2,
-        pady=2
-    )
+        day_label.grid(
+            row=row,
+            column=column,
+            padx=2,
+            pady=2
+        )
 
 #This make the app stay opened and not instantly close after opening
 window.mainloop()
