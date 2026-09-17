@@ -1,5 +1,5 @@
 import tkinter as tk
-import calendar as calen
+import calendar
 import datetime
 
 #This create a window object to use Tkinter function
@@ -14,7 +14,9 @@ today = datetime.date.today()
 current_year = today.year
 current_month = today.month
 current_day = today.day
-current_day_of_month = calen.monthcalendar(current_year, current_month)
+
+cal = calendar.Calendar()
+current_day_of_month = cal.monthdatescalendar(current_year, current_month)
 
 
 #This is enum for Months and Days
@@ -53,9 +55,15 @@ def update_year_label():
     year_label.config(text=current_year)
 
 def update_calendar_day():
+    #This for-loop will destroy the previous grid
+    #so that the calendar will not be overlapped
+    #the data is not affected by this deletion
+    global current_day_of_month
+
     for widget in calendar_grid.winfo_children():
         widget.destroy()
-    current_day_of_month = calen.monthcalendar(current_year, current_month)
+
+    current_day_of_month = cal.monthdatescalendar(current_year, current_month)
     week_size = len(current_day_of_month)
     day_of_week = len(current_day_of_month[0])
     for week in range(0, week_size):
@@ -64,7 +72,7 @@ def update_calendar_day():
             column = day
             day_label = tk.Label(
                 calendar_grid,
-                text=str(current_day_of_month[week][day]),
+                text=str(current_day_of_month[week][day].day),
                 width=12,
                 height=5,
                 relief="solid"
@@ -160,7 +168,7 @@ for week in range(0, week_size):
         column = day
         day_label = tk.Label(
             calendar_grid,
-            text=str(current_day_of_month[week][day]),
+            text=str(current_day_of_month[week][day].day),
             width=11,
             height=5,
             relief="solid"
