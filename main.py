@@ -1,13 +1,39 @@
 import tkinter as tk
 import calendar
 import datetime
+import holidays
 
-#This create a window object to use Tkinter function
+#This INIT a WINDOW object for Tkinter Function
 window = tk.Tk()
-#This create title
 window.title("Limiter")
-#This create the resolution of the window
 window.geometry("1600x900")
+
+#CALENDAR GUI
+#Grid of children frame are relative to parent frame
+#Meaning they are inside main_frame
+
+#Sidebar Frame with Window as Parent
+sidebar = tk.Frame(window)
+sidebar.grid(row=0, column=0)
+
+#Main Frame with Window as Parent
+main_frame = tk.Frame(window)
+main_frame.grid(row=0, column=1)
+
+#Calendar Header with Main Frame as Parent
+calendar_header = tk.Frame(main_frame)
+calendar_header.grid(row=0, column=0) #padx=500, pady=(100,0)
+
+#Calendar Grid with Main Frame as Parent
+calendar_grid = tk.Frame(main_frame)
+calendar_grid.grid(row=1, column=0)
+
+#Dashboard View with Main Frame as Parent (currently unused)
+#dashboard_view = tk.Frame(main_frame)
+#dashboard_view.grid(row=0, column=0)
+
+#To-do List View with Main Frame as Parent (currently unused)
+#todolist_view = tk.Frame(main_frame)
 
 #Get the current year, month, day, and days of a month
 today = datetime.date.today()
@@ -45,7 +71,10 @@ days = [
     "Sunday"
 ]
 
+place_holder_value=1
 #FUNCTION SECTION
+
+#CALENDAR_VIEW FUNCTION
 #This update the displayed month when pressed next month button
 def update_month_label():
     month_label.config(text=months[current_month - 1])
@@ -108,7 +137,7 @@ def next_month():
     update_month_label()
     update_year_label()
     update_calendar_day()
-    print(current_month)
+    print(current_month) #This is for Debug
 
 def prev_month():
     global current_month
@@ -122,15 +151,38 @@ def prev_month():
     update_month_label()
     update_year_label()
     update_calendar_day()
-    print(current_month)
+    print(current_month) #This is for Debug
 
-#CALENDAR GUI
-#Calendar Frame with Window as Parent
-calendar = tk.Frame(window)
-calendar.grid(row=0, column=0, padx=500, pady=(100,0))
+#SIDEBAR FUNCTION
+def switch_calendar_view():
+    print(place_holder_value)
 
+def switch_dashboard_view():
+    print(place_holder_value)
+
+#DASHBOARD_VIEW FUNCTION
+
+#LABEL, BUTTON SECTION
+#SIDEBAR
+button_calendar_view = tk.Button(
+    sidebar,
+    text="Calendar View",
+    font=("Arial", 12),
+    command=switch_calendar_view
+)
+button_calendar_view.grid(row=0, column=0)
+
+button_dashboard_view = tk.Button(
+    sidebar,
+    text="Dashboard View",
+    font=("Arial", 12),
+    command=switch_dashboard_view
+)
+button_dashboard_view.grid(row=1, column=0, pady=30)
+
+#CALENDAR
 month_label = tk.Label(
-    calendar,
+    calendar_header,
     text=months[current_month - 1],
     width=11,
     font=("Arial", 12)
@@ -138,7 +190,7 @@ month_label = tk.Label(
 month_label.grid(row=0, column=3)
 
 year_label = tk.Label(
-    calendar,
+    calendar_header,
     text=current_year,
     width=11,
     font=("Arial", 12)
@@ -146,7 +198,7 @@ year_label = tk.Label(
 year_label.grid(row=0, column=4)
 
 button_next_month = tk.Button(
-    calendar,
+    calendar_header,
     text="Next Month",
     font=("Arial", 12),
     command=next_month
@@ -154,7 +206,7 @@ button_next_month = tk.Button(
 button_next_month.grid(row=0, column=6)
 
 button_prev_month = tk.Button(
-    calendar,
+    calendar_header,
     text="Previous Month",
     font=("Arial", 12),
     command=prev_month
@@ -164,7 +216,7 @@ button_prev_month.grid(row=0, column=0)
 #This shows Mon -> Sun
 for column, day in enumerate(days):
     label = tk.Label(
-        calendar,
+        calendar_header,
         text=day,
         width=11,
         font=("Arial", 12)
@@ -172,11 +224,7 @@ for column, day in enumerate(days):
 
     label.grid(row=1, column=column, padx=2, pady=30)
 
-#Calendar_grid Frame with Calendar as Parent
-calendar_grid = tk.Frame(window)
-calendar_grid.grid(row=1, column=0)
-
-#This part generate the calendar days of current month
+#This generates the calendar days of current month
 week_size = len(current_day_of_month)
 day_of_week = len(current_day_of_month[0])
 for week in range(0, week_size):
@@ -205,6 +253,8 @@ for week in range(0, week_size):
             padx=2,
             pady=2
         )
+
+#DASHBOARD
 
 #This make the app stay opened and not instantly close after opening
 window.mainloop()
