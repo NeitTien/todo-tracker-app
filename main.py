@@ -1,5 +1,5 @@
 import tkinter as tk
-import calendar
+import calendar as calen
 import datetime
 
 #This create a window object to use Tkinter function
@@ -9,12 +9,12 @@ window.title("Limiter")
 #This create the resolution of the window
 window.geometry("1600x900")
 
-#Get the current year, month, day
+#Get the current year, month, day, and days of a month
 today = datetime.date.today()
 current_year = today.year
 current_month = today.month
 current_day = today.day
-current_day_of_month = calendar.monthcalendar(current_year, current_month)
+current_day_of_month = calen.monthcalendar(current_year, current_month)
 
 
 #This is enum for Months and Days
@@ -43,14 +43,40 @@ days = [
     "Sunday"
 ]
 
+#FUNCTION SECTION
+#This update the displayed month when pressed next month button
 def update_month_label():
     month_label.config(text=months[current_month - 1])
 
+#This update the displayed year when year change because of next month
 def update_year_label():
     year_label.config(text=current_year)
 
-def update_day_labebl():
-    day_label.config(text=str(current_day_of_month[week][day]))
+def update_calendar_day():
+    for widget in calendar_grid.winfo_children():
+        widget.destroy()
+    current_day_of_month = calen.monthcalendar(current_year, current_month)
+    week_size = len(current_day_of_month)
+    day_of_week = len(current_day_of_month[0])
+    for week in range(0, week_size):
+        row = week
+        for day in range(0, day_of_week):
+            column = day
+            day_label = tk.Label(
+                calendar_grid,
+                text=str(current_day_of_month[week][day]),
+                width=12,
+                height=5,
+                relief="solid"
+            )
+
+            day_label.grid(
+                row=row,
+                column=column,
+                padx=2,
+                pady=2
+            )
+
 
 def next_month():
     global current_month
@@ -63,6 +89,7 @@ def next_month():
 
     update_month_label()
     update_year_label()
+    update_calendar_day()
     print(current_month)
 
 def prev_month():
@@ -76,39 +103,43 @@ def prev_month():
         
     update_month_label()
     update_year_label()
+    update_calendar_day()
     print(current_month)
 
+#CALENDAR GUI
+#Calendar Frame with Window as Parent
 calendar = tk.Frame(window)
-calendar.pack(pady=100)
+calendar.grid(row=0, column=0, padx=500, pady=(100,0))
 
 month_label = tk.Label(
     calendar,
     text=months[current_month - 1],
     font=("Arial", 12)
 )
-month_label.grid(row=0, column=3, padx=10, pady=10)
+month_label.grid(row=0, column=3)
 
 year_label = tk.Label(
     calendar,
     text=current_year,
     font=("Arial", 12)
 )
-year_label.grid(row=0, column=5, padx=0, pady=0)
+year_label.grid(row=0, column=4)
 
 button_next_month = tk.Button(
     calendar,
     text="Next Month",
     command=next_month
 )
-button_next_month.grid(row=0, column=6, padx=10, pady=10)
+button_next_month.grid(row=0, column=6)
 
 button_prev_month = tk.Button(
     calendar,
     text="Previous Month",
     command=prev_month
 )
-button_prev_month.grid(row=0, column=0, padx=10, pady=10)
+button_prev_month.grid(row=0, column=0)
 
+#This shows Mon -> Sun
 for column, day in enumerate(days):
     label = tk.Label(
         calendar,
@@ -116,18 +147,21 @@ for column, day in enumerate(days):
         font=("Arial", 12)
     )
 
-    label.grid(row=1, column=column, padx=10, pady=10)
+    label.grid(row=1, column=column, padx=10, pady=30)
 
+#Calendar_grid Frame with Calendar as Parent
+calendar_grid = tk.Frame(window)
+calendar_grid.grid(row=1, column=0)
 week_size = len(current_day_of_month)
 day_of_week = len(current_day_of_month[0])
 for week in range(0, week_size):
-    row = week + 2
+    row = week
     for day in range(0, day_of_week):
         column = day
         day_label = tk.Label(
-            calendar,
+            calendar_grid,
             text=str(current_day_of_month[week][day]),
-            width=12,
+            width=11,
             height=5,
             relief="solid"
         )
