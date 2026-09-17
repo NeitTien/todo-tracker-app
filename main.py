@@ -53,13 +53,13 @@ def update_month_label():
 #This update the displayed year when year change because of next month
 def update_year_label():
     year_label.config(text=current_year)
-
+#This update calendar days of a month
 def update_calendar_day():
+    global current_day_of_month
+
     #This for-loop will destroy the previous grid
     #so that the calendar will not be overlapped
     #the data is not affected by this deletion
-    global current_day_of_month
-
     for widget in calendar_grid.winfo_children():
         widget.destroy()
 
@@ -70,12 +70,23 @@ def update_calendar_day():
         row = week
         for day in range(0, day_of_week):
             column = day
+
+            #This will make days that is not of current month grayed out
+            #696969 is gray color and FFFFFF is white color
+            #add foreground if want to change text_color
+            if current_day_of_month[week][day].month != current_month:
+                background_color = "#696969"
+            else:
+                background_color = "#FFFFFF"
+
             day_label = tk.Label(
                 calendar_grid,
                 text=str(current_day_of_month[week][day].day),
-                width=12,
+                font=("Arial", 12),
+                width=11,
                 height=5,
-                relief="solid"
+                relief="solid",
+                background = background_color
             )
 
             day_label.grid(
@@ -84,7 +95,6 @@ def update_calendar_day():
                 padx=2,
                 pady=2
             )
-
 
 def next_month():
     global current_month
@@ -122,6 +132,7 @@ calendar.grid(row=0, column=0, padx=500, pady=(100,0))
 month_label = tk.Label(
     calendar,
     text=months[current_month - 1],
+    width=11,
     font=("Arial", 12)
 )
 month_label.grid(row=0, column=3)
@@ -129,6 +140,7 @@ month_label.grid(row=0, column=3)
 year_label = tk.Label(
     calendar,
     text=current_year,
+    width=11,
     font=("Arial", 12)
 )
 year_label.grid(row=0, column=4)
@@ -136,6 +148,7 @@ year_label.grid(row=0, column=4)
 button_next_month = tk.Button(
     calendar,
     text="Next Month",
+    font=("Arial", 12),
     command=next_month
 )
 button_next_month.grid(row=0, column=6)
@@ -143,6 +156,7 @@ button_next_month.grid(row=0, column=6)
 button_prev_month = tk.Button(
     calendar,
     text="Previous Month",
+    font=("Arial", 12),
     command=prev_month
 )
 button_prev_month.grid(row=0, column=0)
@@ -152,26 +166,37 @@ for column, day in enumerate(days):
     label = tk.Label(
         calendar,
         text=day,
+        width=11,
         font=("Arial", 12)
     )
 
-    label.grid(row=1, column=column, padx=10, pady=30)
+    label.grid(row=1, column=column, padx=2, pady=30)
 
 #Calendar_grid Frame with Calendar as Parent
 calendar_grid = tk.Frame(window)
 calendar_grid.grid(row=1, column=0)
+
+#This part generate the calendar days of current month
 week_size = len(current_day_of_month)
 day_of_week = len(current_day_of_month[0])
 for week in range(0, week_size):
     row = week
     for day in range(0, day_of_week):
         column = day
+        
+        if current_day_of_month[week][day].month != current_month:
+            background_color = "#696969"
+        else:
+            background_color = "#FFFFFF"
+
         day_label = tk.Label(
             calendar_grid,
             text=str(current_day_of_month[week][day].day),
+            font=("Arial", 12),
             width=11,
             height=5,
-            relief="solid"
+            relief="solid",
+            background = background_color
         )
 
         day_label.grid(
