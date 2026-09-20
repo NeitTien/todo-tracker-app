@@ -20,17 +20,21 @@ sidebar.grid(row=0, column=0)
 main_frame = tk.Frame(window)
 main_frame.grid(row=0, column=1)
 
-#Calendar Header with Main Frame as Parent
-calendar_header = tk.Frame(main_frame)
+#Calendar View with Main Frame as Parent
+calendar_view = tk.Frame(main_frame)
+calendar_view.grid(row=0, column=0)
+
+#Calendar Header with Calendar View as Parent
+calendar_header = tk.Frame(calendar_view)
 calendar_header.grid(row=0, column=0) #padx=500, pady=(100,0)
 
-#Calendar Grid with Main Frame as Parent
-calendar_grid = tk.Frame(main_frame)
+#Calendar Grid with Calendar View as Parent
+calendar_grid = tk.Frame(calendar_view)
 calendar_grid.grid(row=1, column=0)
 
-#Dashboard View with Main Frame as Parent (currently unused)
-#dashboard_view = tk.Frame(main_frame)
-#dashboard_view.grid(row=0, column=0)
+#Dashboard View with Main Frame as Parent
+dashboard_view = tk.Frame(main_frame)
+dashboard_view.grid(row=0, column=0)
 
 #To-do List View with Main Frame as Parent (currently unused)
 #todolist_view = tk.Frame(main_frame)
@@ -155,10 +159,10 @@ def prev_month():
 
 #SIDEBAR FUNCTION
 def switch_calendar_view():
-    print(place_holder_value)
+    calendar_view.tkraise()
 
 def switch_dashboard_view():
-    print(place_holder_value)
+    dashboard_view.tkraise()
 
 #DASHBOARD_VIEW FUNCTION
 
@@ -255,6 +259,11 @@ for week in range(0, week_size):
         )
 
 #DASHBOARD
-
+placeholder_label = tk.Label(
+    dashboard_view,
+    text="This is place holder",
+    font=("Arial", 12)
+)
+placeholder_label.grid(row=0, column=0)
 #This make the app stay opened and not instantly close after opening
 window.mainloop()
