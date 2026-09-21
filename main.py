@@ -2,11 +2,17 @@ import tkinter as tk
 import calendar
 import datetime
 import holidays
+from pathlib import Path
 
 #This INIT a WINDOW object for Tkinter Function
 window = tk.Tk()
 window.title("Limiter")
 window.geometry("1600x900")
+
+#Icon for the application
+BASE_DIR = Path(_file_).resolve().parent
+icon_path = BASE_DIR / "assets" / "icon.ico"
+window.iconbitmap(icon_path)
 
 #CALENDAR GUI
 #Grid of children frame are relative to parent frame
@@ -53,8 +59,8 @@ window.grid_columnconfigure(1, weight=1) #Main Frame
 window.grid_rowconfigure(0, weight=1)
 
 #Main Frame Grid behavior
-main_frame.grid_columnconfigure(0, weight=1)
-main_frame.grid_rowconfigure(0, weight=1)
+#main_frame.grid_columnconfigure(0, weight=1)
+#main_frame.grid_rowconfigure(0, weight=1)
 
 #Get the current year, month, day, and days of a month
 today = datetime.date.today()
@@ -282,5 +288,7 @@ placeholder_label = tk.Label(
     font=("Arial", 12)
 )
 placeholder_label.grid(row=0, column=0)
+
+
 #This make the app stay opened and not instantly close after opening
 window.mainloop()
