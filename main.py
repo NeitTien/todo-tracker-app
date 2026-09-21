@@ -10,7 +10,7 @@ window.title("Limiter")
 window.geometry("1600x900")
 
 #Icon for the application
-BASE_DIR = Path(_file_).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent
 icon_path = BASE_DIR / "assets" / "icon.ico"
 window.iconbitmap(icon_path)
 
