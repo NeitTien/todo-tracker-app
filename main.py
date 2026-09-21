@@ -10,7 +10,7 @@ window.title("Limiter")
 window.geometry("1600x900")
 
 #Icon for the application
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent #relative Path to the main.py file
 icon_path = BASE_DIR / "assets" / "icon.ico"
 window.iconbitmap(icon_path)
 
@@ -19,7 +19,11 @@ window.iconbitmap(icon_path)
 #Meaning they are inside main_frame
 
 #Sidebar Frame with Window as Parent
-sidebar = tk.Frame(window)
+sidebar = tk.Frame(
+    window,
+    highlightbackground="purple",
+    highlightthickness=1
+)
 sidebar.grid(row=0, column=0, padx=(0, 50), pady=30, sticky="nsew")
 
 #Main Frame with Window as Parent
@@ -59,8 +63,8 @@ window.grid_columnconfigure(1, weight=1) #Main Frame
 window.grid_rowconfigure(0, weight=1)
 
 #Main Frame Grid behavior
-#main_frame.grid_columnconfigure(0, weight=1)
-#main_frame.grid_rowconfigure(0, weight=1)
+main_frame.grid_columnconfigure(0, weight=1)
+main_frame.grid_rowconfigure(0, weight=1)
 
 #Get the current year, month, day, and days of a month
 today = datetime.date.today()
@@ -211,7 +215,6 @@ button_dashboard_view.grid(row=1, column=0, pady=30)
 month_label = tk.Label(
     calendar_header,
     text=months[current_month - 1],
-    width=11,
     font=("Arial", 12)
 )
 month_label.grid(row=0, column=3)
@@ -219,7 +222,6 @@ month_label.grid(row=0, column=3)
 year_label = tk.Label(
     calendar_header,
     text=current_year,
-    width=11,
     font=("Arial", 12)
 )
 year_label.grid(row=0, column=4)
