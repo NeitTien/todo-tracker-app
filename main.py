@@ -11,8 +11,9 @@ window.geometry("1600x900")
 
 #Icon for the application
 BASE_DIR = Path(__file__).resolve().parent #relative Path to the main.py file
-icon_path = BASE_DIR / "assets" / "icon.ico"
-window.iconbitmap(icon_path)
+icon_path = BASE_DIR / "assets" / "icon.png" #location of icon
+icon = tk.PhotoImage(file=icon_path) #icon object
+window.iconphoto(True, icon) #True mean use the icon as default for this app
 
 #CALENDAR GUI
 #Grid of children frame are relative to parent frame
