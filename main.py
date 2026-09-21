@@ -14,30 +14,47 @@ window.geometry("1600x900")
 
 #Sidebar Frame with Window as Parent
 sidebar = tk.Frame(window)
-sidebar.grid(row=0, column=0)
+sidebar.grid(row=0, column=0, padx=(0, 50), pady=30, sticky="nsew")
 
 #Main Frame with Window as Parent
 main_frame = tk.Frame(window)
-main_frame.grid(row=0, column=1)
+main_frame.grid(row=0, column=1, pady= 30, sticky="nsew")
 
 #Calendar View with Main Frame as Parent
-calendar_view = tk.Frame(main_frame)
-calendar_view.grid(row=0, column=0)
+calendar_view = tk.Frame(
+    main_frame,
+    highlightbackground="red",
+    highlightthickness=1
+)
+calendar_view.grid(row=0, column=0, sticky="nsew")
 
 #Calendar Header with Calendar View as Parent
 calendar_header = tk.Frame(calendar_view)
-calendar_header.grid(row=0, column=0) #padx=500, pady=(100,0)
+calendar_header.grid(row=0, column=0)
 
 #Calendar Grid with Calendar View as Parent
 calendar_grid = tk.Frame(calendar_view)
 calendar_grid.grid(row=1, column=0)
 
 #Dashboard View with Main Frame as Parent
-dashboard_view = tk.Frame(main_frame)
-dashboard_view.grid(row=0, column=0)
+dashboard_view = tk.Frame(
+    main_frame,
+    highlightbackground="blue",
+    highlightthickness=1
+)
+dashboard_view.grid(row=0, column=0, sticky="nsew")
 
 #To-do List View with Main Frame as Parent (currently unused)
 #todolist_view = tk.Frame(main_frame)
+
+#Window Grid behavior
+window.grid_columnconfigure(0, weight=0) #Sidebar Frame
+window.grid_columnconfigure(1, weight=1) #Main Frame
+window.grid_rowconfigure(0, weight=1)
+
+#Main Frame Grid behavior
+main_frame.grid_columnconfigure(0, weight=1)
+main_frame.grid_rowconfigure(0, weight=1)
 
 #Get the current year, month, day, and days of a month
 today = datetime.date.today()
