@@ -2,6 +2,7 @@ import tkinter as tk
 import calendar
 import datetime
 import holidays
+import settings
 from pathlib import Path
 
 #This INIT a WINDOW object for Tkinter Function
@@ -210,7 +211,7 @@ button_dashboard_view = tk.Button(
     font=("Arial", 12),
     command=switch_dashboard_view
 )
-button_dashboard_view.grid(row=1, column=0, pady=30)
+button_dashboard_view.grid(row=1, column=0, pady=(30,30))
 
 #CALENDAR
 month_label = tk.Label(
