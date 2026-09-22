@@ -213,6 +213,14 @@ button_dashboard_view = tk.Button(
 )
 button_dashboard_view.grid(row=1, column=0, pady=(30,30))
 
+button_settings = tk.Button(
+    sidebar,
+    text="Settings",
+    font=("Arial", 12),
+    command=lambda: settings.open_settings(window)
+)
+button_settings.grid(row=2, column=0, pady= (0,30))
+
 #CALENDAR
 month_label = tk.Label(
     calendar_header,
