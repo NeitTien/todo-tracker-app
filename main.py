@@ -3,6 +3,7 @@ import calendar
 import datetime
 import holidays
 import settings
+import dashboard_view
 from pathlib import Path
 
 #This INIT a WINDOW object for Tkinter Function
@@ -49,11 +50,7 @@ calendar_grid = tk.Frame(calendar_view)
 calendar_grid.grid(row=1, column=0)
 
 #Dashboard View with Main Frame as Parent
-dashboard_view = tk.Frame(
-    main_frame,
-    highlightbackground="blue",
-    highlightthickness=1
-)
+dashboard_view = dashboard_view.create_dashboard(main_frame)
 dashboard_view.grid(row=0, column=0, sticky="nsew")
 
 #To-do List View with Main Frame as Parent (currently unused)
@@ -292,14 +289,6 @@ for week in range(0, week_size):
             padx=2,
             pady=2
         )
-
-#DASHBOARD
-placeholder_label = tk.Label(
-    dashboard_view,
-    text="This is place holder",
-    font=("Arial", 12)
-)
-placeholder_label.grid(row=0, column=0)
 
 
 #This make the app stay opened and not instantly close after opening

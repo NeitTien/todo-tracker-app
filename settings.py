@@ -15,7 +15,7 @@ def save_settings():
     with open(SETTINGS_FILE, "w") as file:
         return json.dump(settings, file, indent=4)
 
-def open_settings(window):
-    settings_view = tk.Toplevel(window)
+def open_settings(parent):
+    settings_view = tk.Toplevel(parent)
     settings_view.title("Settings")
     settings_view.geometry("900x600")
