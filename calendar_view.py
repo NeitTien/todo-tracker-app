@@ -30,6 +30,7 @@ days = [
 
 class CalendarView:
     def __init__(self, parent):
+        #This function run when creating a CalendarView object
         self.parent = parent #Parent is main_frame
 
         #Get the current year, month, day, and days of a month
@@ -40,8 +41,10 @@ class CalendarView:
         self.current_day_of_month = calendar.Calendar().monthdatescalendar(
             self.current_year, self.current_month)
 
+        #Create the frame
         self.frame = tk.Frame(parent)
 
+        #Execute those functions
         self.create_widgets()
         self.create_label()
         self.create_button()
@@ -114,11 +117,16 @@ class CalendarView:
         #Days of a month Label
         week_size = len(self.current_day_of_month)
         day_of_week = len(self.current_day_of_month[0])
+        #For every week in a month
         for week in range(0, week_size):
             row = week
+            #For every day in a week
             for day in range(0, day_of_week):
                 column = day
 
+                #This will make days that is not of current month grayed out
+                #696969 is gray color and FFFFFF is white color
+                #add foreground if want to change text_color
                 if self.current_day_of_month[week][day].month != self.current_month:
                     background_color = "#696969"
                 else:
@@ -166,11 +174,40 @@ class CalendarView:
             row=0,
             column=0
         )
+
+    def next_month(self):
+        self.current_month += 1
+
+        if self.current_month > 12:
+            self.current_month = 1
+            self.current_year += 1
+
+        #Update the label to dispay correctly
+        self.update_year_label()
+        self.update_month_label()
+        self.update_calendar_day()
+
+        print(self.current_month) #Debug
+
+    def prev_month(self):
+        self.current_month -= 1
+
+        if self.current_month < 1:
+            self.current_month = 12
+            self.current_year -= 1
+
+        #Update the label to dispay correctly
+        self.update_year_label()
+        self.update_month_label()
+        self.update_calendar_day()
+        print(self.current_month) #Debug
     
     def update_year_label(self):
+        #This function change the label by edit the text config
         self.year_label.config(text=self.current_year)
 
     def update_month_label(self):
+        #This function change the label by edit the text config
         self.month_label.config(text=months[self.current_month - 1])
 
     def update_calendar_day(self):
@@ -180,6 +217,10 @@ class CalendarView:
         for widget in self.calendar_grid.winfo_children():
             widget.destroy()
 
+        #Recheck the current day of month
+        self.current_day_of_month = calendar.Calendar().monthdatescalendar(
+            self.current_year, self.current_month)
+
         week_size = len(self.current_day_of_month)
         day_of_week = len(self.current_day_of_month[0])
         for week in range(0, week_size):
@@ -187,9 +228,6 @@ class CalendarView:
             for day in range(0, day_of_week):
                 column = day
                             
-                #This will make days that is not of current month grayed out
-                #696969 is gray color and FFFFFF is white color
-                #add foreground if want to change text_color
                 if self.current_day_of_month[week][day].month != self.current_month:
                     background_color = "#696969"
                 else:
@@ -211,35 +249,5 @@ class CalendarView:
                     padx=2,
                     pady=2
                 )
-
-    def next_month(self):
-        self.current_month += 1
-
-        if self.current_month > 12:
-            self.current_month = 1
-            self.current_year += 1
-
-        self.current_day_of_month = calendar.Calendar().monthdatescalendar(
-            self.current_year, self.current_month)
-
-        self.update_year_label()
-        self.update_month_label()
-        self.update_calendar_day()
-        print(self.current_month) #Debug
-
-    def prev_month(self):
-        self.current_month -= 1
-
-        if self.current_month < 1:
-            self.current_month = 12
-            self.current_year -= 1
-
-        self.current_day_of_month = calendar.Calendar().monthdatescalendar(
-            self.current_year, self.current_month)
-
-        self.update_year_label()
-        self.update_month_label()
-        self.update_calendar_day()
-        print(self.current_month) #Debug
     
 
