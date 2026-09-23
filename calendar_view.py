@@ -103,7 +103,7 @@ class CalendarView:
         #Grid scaling configuration
         for column in range(7):
             self.calendar_grid.grid_columnconfigure(column, weight=1)
-        for row in range(6):
+        for row in range(len(self.current_day_of_month)):
             self.calendar_grid.grid_rowconfigure(row, weight=1)
 
     def create_label(self):
@@ -235,6 +235,7 @@ class CalendarView:
             self.current_year += 1
 
         #Update the label to dispay correctly
+        self.update_grid_row()
         self.update_year_label()
         self.update_month_label()
         self.update_calendar_day()
@@ -250,11 +251,12 @@ class CalendarView:
             self.current_year -= 1
 
         #Update the label to dispay correctly
+        self.update_grid_row()
         self.update_year_label()
         self.update_month_label()
         self.update_calendar_day()
         print(self.current_month) #Debug
-    
+
     def update_year_label(self):
         #This function change the label by edit the text config
         self.year_label.config(text=self.current_year)
@@ -330,6 +332,8 @@ class CalendarView:
                     padx=5,
                     pady=5
                 )
-                
-    
+    def update_grid_row(self):
+        temp = len(self.current_day_of_month)
+        for row in range(6 - temp, 6):
+            self.calendar_grid.grid_rowconfigure(row, weight=0, minsize=0)
 
