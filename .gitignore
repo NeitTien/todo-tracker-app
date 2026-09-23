@@ -1,2 +1,6 @@
+.venv
 pseudocode.py
 def_settings.json
+test.py
+__pycache__
+*.pyc

@@ -12,7 +12,7 @@ window = tk.Tk()
 window.title("Limiter")
 window.geometry("1600x900")
 
-#Get the current year, month, day, and days of a month
+
 '''
 today = datetime.date.today()
 current_year = today.year
@@ -64,9 +64,6 @@ calendar_grid = tk.Frame(calendar_view)
 calendar_grid.grid(row=1, column=0)
 '''
 calendar = calendar_view.CalendarView(main_frame)
-calendar.create_widgets()
-calendar.create_label()
-calendar.create_button()
 
 #Dashboard View with Main Frame as Parent
 dashboard_view = dashboard_view.create_dashboard(main_frame)

@@ -1,7 +1,7 @@
 import tkinter as tk
 import datetime
 import calendar
-
+#CALENDAR GUI
 #This is enum for Months and Days
 months = [
     "January",
@@ -30,8 +30,9 @@ days = [
 
 class CalendarView:
     def __init__(self, parent):
-        self.parent = parent
+        self.parent = parent #Parent is main_frame
 
+        #Get the current year, month, day, and days of a month
         today = datetime.date.today()
         self.current_year = today.year
         self.current_month = today.month
@@ -42,6 +43,8 @@ class CalendarView:
         self.frame = tk.Frame(parent)
 
         self.create_widgets()
+        self.create_label()
+        self.create_button()
 
     def create_widgets(self):
         #Calendar View
@@ -71,6 +74,7 @@ class CalendarView:
         )
 
     def create_label(self):
+        #Month Label
         self.month_label = tk.Label(
             self.calendar_header,
             text=months[self.current_month - 1],
@@ -81,6 +85,7 @@ class CalendarView:
             column=3
         )
 
+        #Year Label
         self.year_label = tk.Label(
             self.calendar_header,
             text=self.current_year,
@@ -91,6 +96,7 @@ class CalendarView:
             column=4
         )
 
+        #Monday -> Sunday Label
         for column, day in enumerate(days):
             label = tk.Label(
                 self.calendar_header,
@@ -105,6 +111,7 @@ class CalendarView:
                 pady=30
             )
 
+        #Days of a month Label
         week_size = len(self.current_day_of_month)
         day_of_week = len(self.current_day_of_month[0])
         for week in range(0, week_size):
@@ -136,6 +143,7 @@ class CalendarView:
 
     
     def create_button(self):
+        #Next Month Button
         self.button_next_month = tk.Button(
             self.calendar_header,
             text="Next Month",
@@ -147,6 +155,7 @@ class CalendarView:
             column=6
         )
 
+        #Previous Month Button
         self.button_prev_month = tk.Button(
             self.calendar_header,
             text="Previous Month",
