@@ -4,12 +4,25 @@ import datetime
 import holidays
 import settings
 import dashboard_view
+import calendar_view
 from pathlib import Path
 
 #This INIT a WINDOW object for Tkinter Function
 window = tk.Tk()
 window.title("Limiter")
 window.geometry("1600x900")
+
+#Get the current year, month, day, and days of a month
+'''
+today = datetime.date.today()
+current_year = today.year
+current_month = today.month
+current_day = today.day
+cal = calendar.Calendar()
+current_day_of_month = cal.monthdatescalendar(current_year, current_month)
+'''
+
+
 
 #Icon for the application
 BASE_DIR = Path(__file__).resolve().parent #relative Path to the main.py file
@@ -33,6 +46,7 @@ sidebar.grid(row=0, column=0, padx=(0, 50), pady=30, sticky="nsew")
 main_frame = tk.Frame(window)
 main_frame.grid(row=0, column=1, pady= 30, sticky="nsew")
 
+'''
 #Calendar View with Main Frame as Parent
 calendar_view = tk.Frame(
     main_frame,
@@ -48,6 +62,11 @@ calendar_header.grid(row=0, column=0)
 #Calendar Grid with Calendar View as Parent
 calendar_grid = tk.Frame(calendar_view)
 calendar_grid.grid(row=1, column=0)
+'''
+calendar = calendar_view.CalendarView(main_frame)
+calendar.create_widgets()
+calendar.create_label()
+calendar.create_button()
 
 #Dashboard View with Main Frame as Parent
 dashboard_view = dashboard_view.create_dashboard(main_frame)
@@ -65,45 +84,12 @@ window.grid_rowconfigure(0, weight=1)
 main_frame.grid_columnconfigure(0, weight=1)
 main_frame.grid_rowconfigure(0, weight=1)
 
-#Get the current year, month, day, and days of a month
-today = datetime.date.today()
-current_year = today.year
-current_month = today.month
-current_day = today.day
 
-cal = calendar.Calendar()
-current_day_of_month = cal.monthdatescalendar(current_year, current_month)
-
-
-#This is enum for Months and Days
-months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-]
-
-days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday"
-]
 
 place_holder_value=1
 #FUNCTION SECTION
 
+'''
 #CALENDAR_VIEW FUNCTION
 #This update the displayed month when pressed next month button
 def update_month_label():
@@ -182,10 +168,10 @@ def prev_month():
     update_year_label()
     update_calendar_day()
     print(current_month) #This is for Debug
-
+'''
 #SIDEBAR FUNCTION
 def switch_calendar_view():
-    calendar_view.tkraise()
+    calendar.calendar_view.tkraise()
 
 def switch_dashboard_view():
     dashboard_view.tkraise()
@@ -219,6 +205,7 @@ button_settings = tk.Button(
 button_settings.grid(row=2, column=0, pady= (0,30))
 
 #CALENDAR
+'''
 month_label = tk.Label(
     calendar_header,
     text=months[current_month - 1],
@@ -290,6 +277,6 @@ for week in range(0, week_size):
             pady=2
         )
 
-
+'''
 #This make the app stay opened and not instantly close after opening
 window.mainloop()
