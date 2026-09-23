@@ -1,6 +1,7 @@
 import tkinter as tk
 import datetime
 import calendar
+
 #CALENDAR GUI
 #This is enum for Months and Days
 months = [
@@ -175,6 +176,7 @@ class CalendarView:
             column=0
         )
 
+    #For Next Month button
     def next_month(self):
         self.current_month += 1
 
@@ -189,6 +191,7 @@ class CalendarView:
 
         print(self.current_month) #Debug
 
+    #For Previous Month button
     def prev_month(self):
         self.current_month -= 1
 
