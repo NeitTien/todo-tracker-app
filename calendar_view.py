@@ -1,6 +1,7 @@
 import tkinter as tk
 import datetime
 import calendar
+import assignment_picker
 
 #CALENDAR GUI
 #This is enum for Months and Days
@@ -35,10 +36,15 @@ class CalendarView:
         self.parent = parent #Parent is main_frame
 
         #Get the current year, month, day, and days of a month
-        today = datetime.date.today()
-        self.current_year = today.year
-        self.current_month = today.month
-        self.current_day = today.day
+        self.today = datetime.date.today() #This will print today date in YYYY-MM-DD format
+        self.current_year = self.today.year
+        self.current_month = self.today.month
+        self.current_day = self.today.day
+
+        #For the assignment_picker.py
+        self.selected_date = self.today
+
+        #This will return a list of lists, each list is a week of a month
         self.current_day_of_month = calendar.Calendar().monthdatescalendar(
             self.current_year, self.current_month)
 
@@ -246,26 +252,14 @@ class CalendarView:
             column=0
         )
 
-    #For Next Month button
-    def next_month(self):
-        self.current_month += 1
+    #This function handle month change logic of next_month and prev_month button
+    def change_month(self, offset):
+        self.current_month += offset
 
         if self.current_month > 12:
             self.current_month = 1
             self.current_year += 1
-
-        #Update the label to dispay correctly
-        self.update_year_label()
-        self.update_month_label()
-        self.update_calendar_day()
-
-        print(self.current_month) #Debug
-
-    #For Previous Month button
-    def prev_month(self):
-        self.current_month -= 1
-
-        if self.current_month < 1:
+        elif self.current_month < 1:
             self.current_month = 12
             self.current_year -= 1
 
@@ -273,8 +267,17 @@ class CalendarView:
         self.update_year_label()
         self.update_month_label()
         self.update_calendar_day()
+
         print(self.current_month) #Debug
-    
+
+    #For Next Month button
+    def next_month(self):
+        self.change_month(1)
+
+    #For Previous Month button
+    def prev_month(self):
+        self.change_month(-1)
+
     #For Year Label
     def update_year_label(self):
         #This function change the label by edit the text config
@@ -359,5 +362,3 @@ class CalendarView:
                     pady=5
                 )
                 
-    
-

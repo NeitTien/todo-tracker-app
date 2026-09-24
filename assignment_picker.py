@@ -8,9 +8,11 @@ Edit time changes an assignment's due time, using a 24-hour HH:MM value.
 Blocked dates reject new assignments; existing ones can still be managed.
 """
 
+import calendar_view
 import calendar
 import datetime
 import tkinter as tk
+from tkinter import simpledialog, messagebox
 
 # The FULL date is the key, so September 5 and October 5 have separate data.
 # Example: assignments[datetime.date(2026, 9, 23)] = [
@@ -68,10 +70,13 @@ class AssignmentPicker(simpledialog.Dialog):
 
     def body(self, frame):
         tk.Label(frame, text="Choose an assignment:").pack(anchor="w")
+
         list_frame = tk.Frame(frame)
         list_frame.pack(fill="both", expand=True, pady=8)
+
         scrollbar = tk.Scrollbar(list_frame)
         scrollbar.pack(side="right", fill="y")
+
         self.listbox = tk.Listbox(
             list_frame, width=64, height=min(8, len(self.items)),
             exportselection=False, yscrollcommand=scrollbar.set,
@@ -253,27 +258,10 @@ def update_calendar_day():
 
 
 def change_month(offset):
-    global current_month, current_year, selected_date
-    month_number = current_year * 12 + current_month - 1 + offset
-    year, month_index = divmod(month_number, 12)
-    # monthdatescalendar may include days just outside the displayed month.
-    if not 2 <= year <= 9998:
-        return
-    current_year, current_month = year, month_index + 1
+
     selected_date = datetime.date(current_year, current_month, 1)
-    update_month_label()
-    update_year_label()
-    update_calendar_day()
+
     status.set("Left-click a date to view assignments; right-click it for options.")
-
-
-def next_month():
-    change_month(1)
-
-
-def prev_month():
-    change_month(-1)
-
 
 # SIDEBAR FUNCTIONS
 
@@ -282,26 +270,6 @@ def create_gui():
     global window, calendar_view, dashboard_view, calendar_grid
     global month_label, year_label, selected_date_label, assignment_list
     global status, menu, is_macos, context_click
-
-    dashboard_view = tk.Frame(main_frame)
-    dashboard_view.grid(row=0, column=0, sticky="nsew")
-    tk.Label(dashboard_view, text="This is place holder", font=("Arial", 12)).grid(
-        row=0, column=0
-    )
-
-    tk.Button(sidebar, text="Calendar View", font=("Arial", 12),
-              command=switch_calendar_view).grid(row=0, column=0)
-    tk.Button(sidebar, text="Dashboard View", font=("Arial", 12),
-              command=switch_dashboard_view).grid(row=1, column=0, pady=30)
-
-    tk.Button(calendar_header, text="Previous Month", font=("Arial", 12),
-              command=prev_month).grid(row=0, column=0)
-    month_label = tk.Label(calendar_header, text=months[current_month - 1], font=("Arial", 12))
-    month_label.grid(row=0, column=1)
-    year_label = tk.Label(calendar_header, text=current_year, font=("Arial", 12))
-    year_label.grid(row=0, column=2)
-    tk.Button(calendar_header, text="Next Month", font=("Arial", 12),
-              command=next_month).grid(row=0, column=3)
 
     details_frame = tk.Frame(calendar_view)
     details_frame.grid(row=2, column=0, sticky="ew", pady=(12, 0))
