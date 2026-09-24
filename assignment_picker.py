@@ -89,7 +89,6 @@ class AssignmentPicker(simpledialog.Dialog):
     def apply(self):
         self.result = self.listbox.curselection()[0]
 
-
 def choose_assignment(date, action):
     items = assignments.get(date, [])
     if not items:
@@ -99,7 +98,6 @@ def choose_assignment(date, action):
         return None
     # Dialog provides OK/Cancel and returns None when cancelled or closed.
     return AssignmentPicker(window, date, action, items).result
-
 
 # MENU ACTIONS
 def add_assignment():
@@ -206,14 +204,6 @@ def show_menu(event, date):
 
 
 # CALENDAR VIEW FUNCTIONS
-def update_month_label():
-    month_label.config(text=months[current_month - 1])
-
-
-def update_year_label():
-    year_label.config(text=current_year)
-
-
 def update_calendar_day():
     global current_day_of_month
     # Redraw widgets only. Assignments and blocked dates live in separate data.
@@ -286,13 +276,6 @@ def prev_month():
 
 
 # SIDEBAR FUNCTIONS
-def switch_calendar_view():
-    calendar_view.tkraise()
-
-
-def switch_dashboard_view():
-    dashboard_view.tkraise()
-
 
 def create_gui():
     """Build the existing Limiter window, its views, and its single menu."""
