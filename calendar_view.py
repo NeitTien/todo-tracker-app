@@ -51,7 +51,7 @@ class CalendarView:
         self.create_weekday_label()
         self.create_calendardays_label()
         self.create_button()
-
+    
     def create_widgets(self):
         #Expand the Parent Frame
         self.parent.grid_columnconfigure(0, weight=1)
@@ -103,6 +103,7 @@ class CalendarView:
         )
         #No Grid scaling because we do that when we generate the days of month
 
+    #Create label that display current month, year
     def create_basic_label(self):
         #Month Label
         self.month_label = tk.Label(
@@ -125,6 +126,8 @@ class CalendarView:
             row=0,
             column=4
         )
+
+    #Generate label with Weekday name
     def create_weekday_label(self):
         #Monday -> Sunday Label
         for column in range(7): #A week has 7 days max
@@ -143,6 +146,8 @@ class CalendarView:
                 padx=2,
                 pady=30
             )
+
+    #This will generate Calendar Days (Days of a month) when program first run
     def create_calendardays_label(self):
         #Days of a month Label
         week_size = len(self.current_day_of_month)
@@ -215,7 +220,7 @@ class CalendarView:
                     pady=5
                 )
 
-    
+    #Create Next month, Prev month button
     def create_button(self):
         #Next Month Button
         self.button_next_month = tk.Button(
@@ -270,14 +275,17 @@ class CalendarView:
         self.update_calendar_day()
         print(self.current_month) #Debug
     
+    #For Year Label
     def update_year_label(self):
         #This function change the label by edit the text config
         self.year_label.config(text=self.current_year)
 
+    #For Month Label
     def update_month_label(self):
         #This function change the label by edit the text config
         self.month_label.config(text=months[self.current_month - 1])
 
+    #For Calendar Day (Days of a month)
     def update_calendar_day(self):
         #This for-loop will destroy the previous grid
         #so that the calendar will not be overlapped
