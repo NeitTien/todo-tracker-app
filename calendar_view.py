@@ -47,7 +47,9 @@ class CalendarView:
 
         #Execute those functions
         self.create_widgets()
-        self.create_label()
+        self.create_basic_label()
+        self.create_weekday_label()
+        self.create_calendardays_label()
         self.create_button()
 
     def create_widgets(self):
@@ -99,14 +101,9 @@ class CalendarView:
             column=0,
             sticky="nsew"
         )
+        #No Grid scaling because we do that when we generate the days of month
 
-        #Grid scaling configuration
-        for column in range(7):
-            self.calendar_grid.grid_columnconfigure(column, weight=1)
-        for row in range(6):
-            self.calendar_grid.grid_rowconfigure(row, weight=1)
-
-    def create_label(self):
+    def create_basic_label(self):
         #Month Label
         self.month_label = tk.Label(
             self.calendar_header,
@@ -128,25 +125,43 @@ class CalendarView:
             row=0,
             column=4
         )
-
+    def create_weekday_label(self):
         #Monday -> Sunday Label
-        for column, day in enumerate(days):
-            label = tk.Label(
+        for column in range(7): #A week has 7 days max
+            self.calendar_header.grid_columnconfigure(column, weight=1, uniform="col")
+
+            weekday_label = tk.Label(
                 self.calendar_header,
-                text=day,
-                #width=11,
-                font=("Arial", 12)
+                text=days[column],
+                font=("Arial", 12),
+                anchor="center"
             )
-            label.grid(
+            weekday_label.grid(
                 row=1,
                 column=column,
+                sticky="nsew",
                 padx=2,
                 pady=30
             )
-
+    def create_calendardays_label(self):
         #Days of a month Label
         week_size = len(self.current_day_of_month)
         day_of_week = len(self.current_day_of_month[0])
+
+        #Expand column and row of each day
+        #Max number of week a month can have is 6
+        #if current_month has less than 6 weeks
+        #then the for-loop will assign weight = 1 those weeks
+        #and weight = 0 for non-exist weeks
+        for row in range(6):
+            if row < week_size:
+                self.calendar_grid.grid_rowconfigure(row, weight=1, uniform="row", minsize=0)
+            else:
+                self.calendar_grid.grid_rowconfigure(row, weight=0, uniform="", minsize=0)
+
+        for column in range(day_of_week):
+            self.calendar_grid.grid_columnconfigure(column, weight=1, uniform="col")
+
         #For every week in a month
         for week in range(0, week_size):
             #For every day in a week
@@ -278,8 +293,13 @@ class CalendarView:
         day_of_week = len(self.current_day_of_month[0])
 
         #Expand column and row of each day
-        for row in range(week_size):
-            self.calendar_grid.grid_rowconfigure(row, weight=1, uniform="row")
+        for row in range(6):
+            if row < week_size:
+                self.calendar_grid.grid_rowconfigure(row, weight=1, uniform="row", minsize=0)
+            else:
+                self.calendar_grid.grid_rowconfigure(row, weight=0, uniform="", minsize=0)
+            #self.calendar_grid.grid_rowconfigure(row, weight=weight, uniform="row", minsize=0)
+
         for column in range(day_of_week):
             self.calendar_grid.grid_columnconfigure(column, weight=1, uniform="col")
 
