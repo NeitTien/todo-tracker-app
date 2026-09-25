@@ -8,7 +8,6 @@ Edit time changes an assignment's due time, using a 24-hour HH:MM value.
 Blocked dates reject new assignments; existing ones can still be managed.
 """
 
-import calendar_view
 import calendar
 import datetime
 import tkinter as tk
@@ -18,47 +17,72 @@ from tkinter import simpledialog, messagebox
 # Example: assignments[datetime.date(2026, 9, 23)] = [
 #     {"title": "Finish Python homework", "time": "14:30"}
 # ]
-assignments = {}
-blocked_dates = set()
+
 date_buttons = {}
 
+class AssignmentManager:
+    def __init__(self, parent, on_change=None):
+        self.parent = parent #Parent is the main_frame
 
-def date_text(date):
-    return date.strftime("%A, %B %d, %Y")
+        #Create variable related to the assignment
+        self.assignments = {}
+        self.blocked_dates = set()
+        self.selected_date = datetime.date.today()
 
-def assignment_text(assignment):
-    time_text = assignment["time"] or "No time set"
-    return f"{time_text} - {assignment['title']}"
-
-def normalize_time(value):
-    """Return HH:MM, allow blank for no time, or raise ValueError."""
-    value = value.strip()
-    if not value:
-        return ""
-    return datetime.datetime.strptime(value, "%H:%M").strftime("%H:%M")
-
-def ask_for_time(date, assignment_title, initial_value=""):
-    """None means Cancel; an empty string means the user cleared the time."""
-    while True:
-        value = simpledialog.askstring(
-            f"Assignment time - {date.isoformat()}",
-            f"Time for: {assignment_title}\n\n"
-            "Use 24-hour HH:MM, for example 14:30.\n"
-            "Leave blank for no time.",
-            initialvalue=initial_value,
-            parent=window,
+        self.status = tk.StringVar(
+            master=parent,
+            value="Left-click a date to view assignments; right-click it for options."
         )
-        if value is None:
-            return None
-        try:
-            return normalize_time(value)
-        except ValueError:
-            messagebox.showerror(
-                "Invalid time",
-                "Enter a time from 00:00 to 23:59, or leave it blank.",
+
+        self.is_macos = parent.tk.call("tk", "windowingsystem") == "aqua"
+        self.context_click = "<Button-2>" if self.is_macos else "<Button-3>"
+
+    def date_text(date):
+        return date.strftime("%A, %B %d, %Y")
+
+    def assignment_text(assignment):
+        time_text = assignment["time"] or "No time set"
+        return f"{time_text} - {assignment['title']}"
+
+    def normalize_time(value):
+        """Return HH:MM, allow blank for no time, or raise ValueError."""
+        value = value.strip()
+        if not value:
+            return ""
+        return datetime.datetime.strptime(value, "%H:%M").strftime("%H:%M")
+        
+    def ask_for_time(date, assignment_title, initial_value=""):
+        """None means Cancel; an empty string means the user cleared the time."""
+        while True:
+            value = simpledialog.askstring(
+                f"Assignment time - {date.isoformat()}",
+                f"Time for: {assignment_title}\n\n"
+                "Use 24-hour HH:MM, for example 14:30.\n"
+                "Leave blank for no time.",
+                initialvalue=initial_value,
                 parent=window,
             )
-            initial_value = value
+            if value is None:
+                return None
+            try:
+                return normalize_time(value)
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid time",
+                    "Enter a time from 00:00 to 23:59, or leave it blank.",
+                    parent=window,
+                )
+                initial_value = value
+
+    def choose_assignment(self, date, action):
+        items = assignments.get(date, [])
+        if not items:
+            messagebox.showinfo(
+                action, "There are no assignments on this date.", parent=window
+            )
+            return None
+        # Dialog provides OK/Cancel and returns None when cancelled or closed.
+        return AssignmentPicker(window, date, action, items).result
 
 class AssignmentPicker(simpledialog.Dialog):
     """A child dialog for choosing which assignment to remove or edit."""
@@ -94,15 +118,7 @@ class AssignmentPicker(simpledialog.Dialog):
     def apply(self):
         self.result = self.listbox.curselection()[0]
 
-def choose_assignment(date, action):
-    items = assignments.get(date, [])
-    if not items:
-        messagebox.showinfo(
-            action, "There are no assignments on this date.", parent=window
-        )
-        return None
-    # Dialog provides OK/Cancel and returns None when cancelled or closed.
-    return AssignmentPicker(window, date, action, items).result
+
 
 # MENU ACTIONS
 def add_assignment():
@@ -174,20 +190,28 @@ def edit_time():
 
 
 # SELECT A DATE AND OPEN ITS CONTEXT MENU
-def update_selected_details():
-    blocked = " - BLOCKED" if selected_date in blocked_dates else ""
-    selected_date_label.config(text=f"{date_text(selected_date)}{blocked}")
-    assignment_list.delete(0, tk.END)
-    items = assignments.get(selected_date, [])
+def update_selected_details(self):
+    if self.selected_date_label is None or self.assignment_list is None:
+        return #attach_details_widgets() hasnt been called yet
+
+    blocked = " - BLOCKED" if self.selected_date in self.blocked_dates else ""
+
+    self.selected_date_label.config(text=f"{date_text(selected_date)}{blocked}")
+    self.assignment_list.delete(0, tk.END)
+
+    items = self.assignments.get(self.selected_date, [])
     for assignment in items:
-        assignment_list.insert(tk.END, assignment_text(assignment))
+        self.assignment_list.insert(tk.END, assignment_text(assignment))
     if not items:
-        assignment_list.insert(tk.END, "No assignments on this date.")
+        self.assignment_list.insert(tk.END, "No assignments on this date.")
 
 
-def select_date(date):
-    global selected_date
-    selected_date = date
+def select_date(self, date):
+    self.selected_date = date
+    self.update_selected_details()
+    #Cell restyling (highlight border) is CalendarView part
+    #since it owns the frams - on_change triggers that redraw
+    self.notify_change()
     for button_date, button in date_buttons.items():
         button.config(relief="sunken" if button_date == date else "raised")
     update_selected_details()
@@ -257,11 +281,11 @@ def update_calendar_day():
     update_selected_details()
 
 
-def change_month(offset):
+#def change_month(offset):
 
-    selected_date = datetime.date(current_year, current_month, 1)
+    #selected_date = datetime.date(current_year, current_month, 1)
 
-    status.set("Left-click a date to view assignments; right-click it for options.")
+    #status.set("Left-click a date to view assignments; right-click it for options.")
 
 # SIDEBAR FUNCTIONS
 

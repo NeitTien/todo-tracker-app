@@ -1,33 +1,16 @@
 import tkinter as tk
 import datetime
 import calendar
-import assignment_picker
 
 #CALENDAR GUI
 #This is enum for Months and Days
 months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
 ]
 
 days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday"
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
 ]
 
 class CalendarView:
@@ -42,7 +25,7 @@ class CalendarView:
         self.current_day = self.today.day
 
         #For the assignment_picker.py
-        self.selected_date = self.today
+        #self.selected_date = self.today
 
         #This will return a list of lists, each list is a week of a month
         self.current_day_of_month = calendar.Calendar().monthdatescalendar(
