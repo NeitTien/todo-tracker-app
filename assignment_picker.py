@@ -28,6 +28,7 @@ class AssignmentManager:
         self.assignments = {}
         self.blocked_dates = set()
         self.selected_date = datetime.date.today()
+        self.on_change = on_change
 
         self.status = tk.StringVar(
             master=parent,
@@ -37,21 +38,21 @@ class AssignmentManager:
         self.is_macos = parent.tk.call("tk", "windowingsystem") == "aqua"
         self.context_click = "<Button-2>" if self.is_macos else "<Button-3>"
 
-    def date_text(date):
+    def date_text(self, date):
         return date.strftime("%A, %B %d, %Y")
 
-    def assignment_text(assignment):
+    def assignment_text(self, assignment):
         time_text = assignment["time"] or "No time set"
         return f"{time_text} - {assignment['title']}"
 
-    def normalize_time(value):
+    def normalize_time(self, value):
         """Return HH:MM, allow blank for no time, or raise ValueError."""
         value = value.strip()
         if not value:
             return ""
         return datetime.datetime.strptime(value, "%H:%M").strftime("%H:%M")
         
-    def ask_for_time(date, assignment_title, initial_value=""):
+    def ask_for_time(self, date, assignment_title, initial_value=""):
         """None means Cancel; an empty string means the user cleared the time."""
         while True:
             value = simpledialog.askstring(
@@ -60,7 +61,7 @@ class AssignmentManager:
                 "Use 24-hour HH:MM, for example 14:30.\n"
                 "Leave blank for no time.",
                 initialvalue=initial_value,
-                parent=parent,
+                parent=self.parent,
             )
             if value is None:
                 return None
@@ -70,7 +71,7 @@ class AssignmentManager:
                 messagebox.showerror(
                     "Invalid time",
                     "Enter a time from 00:00 to 23:59, or leave it blank.",
-                    parent=parent,
+                    parent=self.parent,
                 )
                 initial_value = value
 
@@ -79,27 +80,27 @@ class AssignmentManager:
         if not items:
             messagebox.showinfo(
                 action, "There are no assignments on this date.", 
-                parent=parent
+                parent=self.parent
             )
             return None
         # Dialog provides OK/Cancel and returns None when cancelled or closed.
-        return AssignmentPicker(parent, date, action, items).result
+        return AssignmentPicker(self.parent, date, action, items).result
 
     # MENU ACTIONS
-    def add_assignment():
+    def add_assignment(self):
         date = self.selected_date
         if date in self.blocked_dates:
             messagebox.showinfo(
                 "Date blocked",
                 "Unblock this date before adding an assignment.",
-                parent=parent,
+                parent=self.parent,
             )
             return
 
         title = simpledialog.askstring(
             f"Add assignment - {date.isoformat()}",
             f"Assignment name for {date_text(date)}:",
-            parent=parent,
+            parent=self.parent,
         )
 
         if title is None:
@@ -110,7 +111,7 @@ class AssignmentManager:
             messagebox.showerror(
                 "Name required",
                 "Enter an assignment name.",
-                parent=parent
+                parent=self.parent
             )
             return
 
@@ -120,9 +121,9 @@ class AssignmentManager:
 
         self.assignments.setdefault(date, []).append({"title": title, "time": time_value})
         update_calendar_day() #Idk how to deal with this yet
-        status.set(f"Added '{title}' to {date.isoformat()}.")
+        self.status.set(f"Added '{title}' to {date.isoformat()}.")
 
-    def remove_assignment():
+    def remove_assignment(self):
         date = self.selected_date
         index = choose_assignment(date, "Remove assignment")
         if index is None:
@@ -132,10 +133,10 @@ class AssignmentManager:
             del self.assignments[date]
 
         update_calendar_day() #Idk wat to do with this
-        status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
+        self.status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
 
 
-    def block_out():
+    def block_out(self):
         date = self.selected_date
         if date in self.blocked_dates:
             self.blocked_dates.remove(date)
@@ -144,21 +145,27 @@ class AssignmentManager:
             self.blocked_dates.add(date)
             message = f"Blocked {date.isoformat()}. Existing assignments are kept."
         update_calendar_day() #Idk wat to do with this
-        status.set(message)
+        self.status.set(message)
 
 
-    def edit_time():
+    def edit_time(self):
         date = self.selected_date
         index = choose_assignment(date, "Edit time")
         if index is None:
             return
+
         self.assignment = self.assignments[date][index]
-        new_time = ask_for_time(date, self.assignment["title"], self.assignment["time"])
+        new_time = self.ask_for_time(
+            date, 
+            self.assignment["title"], 
+            self.assignment["time"]
+        )
+
         if new_time is None:
             return
         self.assignment["time"] = new_time
         update_calendar_day()
-        status.set(f"Updated time for '{assignment['title']}' on {date.isoformat()}.")
+        self.status.set(f"Updated time for '{assignment['title']}' on {date.isoformat()}.")
 
 
 
