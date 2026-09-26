@@ -22,13 +22,14 @@ date_buttons = {} #I dont know wat this is for yet
 
 class AssignmentManager:
     def __init__(self, parent, on_change=None):
+        
         self.parent = parent #Parent is the main_frame
-
+        self.on_change = on_change
         #Create variable related to the assignment
         self.assignments = {}
         self.blocked_dates = set()
         self.selected_date = datetime.date.today()
-        self.on_change = on_change
+
 
         self.status = tk.StringVar(
             master=parent,
@@ -115,7 +116,7 @@ class AssignmentManager:
             )
             return
 
-        time_value = ask_for_time(date, title)
+        time_value = self.ask_for_time(date, title)
         if time_value is None:
             return  # Cancelling either dialog leaves the calendar data unchanged.
 
@@ -125,7 +126,7 @@ class AssignmentManager:
 
     def remove_assignment(self):
         date = self.selected_date
-        index = choose_assignment(date, "Remove assignment")
+        index = self.choose_assignment(date, "Remove assignment")
         if index is None:
             return
         removed = self.assignments[date].pop(index)
@@ -150,7 +151,7 @@ class AssignmentManager:
 
     def edit_time(self):
         date = self.selected_date
-        index = choose_assignment(date, "Edit time")
+        index = self.choose_assignment(date, "Edit time")
         if index is None:
             return
 
@@ -165,7 +166,7 @@ class AssignmentManager:
             return
         self.assignment["time"] = new_time
         update_calendar_day()
-        self.status.set(f"Updated time for '{assignment['title']}' on {date.isoformat()}.")
+        self.status.set(f"Updated time for '{self.assignment['title']}' on {date.isoformat()}.")
 
 
 
