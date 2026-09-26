@@ -273,6 +273,7 @@ class CalendarView:
 
     #For Calendar Day (Days of a month)
     def update_calendar_day(self):
+        
         #This for-loop will destroy the previous grid
         #so that the calendar will not be overlapped
         #the data is not affected by this deletion
@@ -344,4 +345,3 @@ class CalendarView:
                     padx=5,
                     pady=5
                 )
-                

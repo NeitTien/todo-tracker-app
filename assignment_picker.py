@@ -18,7 +18,7 @@ from tkinter import simpledialog, messagebox
 #     {"title": "Finish Python homework", "time": "14:30"}
 # ]
 
-date_buttons = {}
+date_buttons = {} #I dont know wat this is for yet
 
 class AssignmentManager:
     def __init__(self, parent, on_change=None):
@@ -60,7 +60,7 @@ class AssignmentManager:
                 "Use 24-hour HH:MM, for example 14:30.\n"
                 "Leave blank for no time.",
                 initialvalue=initial_value,
-                parent=window,
+                parent=parent,
             )
             if value is None:
                 return None
@@ -70,19 +70,97 @@ class AssignmentManager:
                 messagebox.showerror(
                     "Invalid time",
                     "Enter a time from 00:00 to 23:59, or leave it blank.",
-                    parent=window,
+                    parent=parent,
                 )
                 initial_value = value
 
     def choose_assignment(self, date, action):
-        items = assignments.get(date, [])
+        items = self.assignments.get(date, [])
         if not items:
             messagebox.showinfo(
-                action, "There are no assignments on this date.", parent=window
+                action, "There are no assignments on this date.", 
+                parent=parent
             )
             return None
         # Dialog provides OK/Cancel and returns None when cancelled or closed.
-        return AssignmentPicker(window, date, action, items).result
+        return AssignmentPicker(parent, date, action, items).result
+
+    # MENU ACTIONS
+    def add_assignment():
+        date = self.selected_date
+        if date in self.blocked_dates:
+            messagebox.showinfo(
+                "Date blocked",
+                "Unblock this date before adding an assignment.",
+                parent=parent,
+            )
+            return
+
+        title = simpledialog.askstring(
+            f"Add assignment - {date.isoformat()}",
+            f"Assignment name for {date_text(date)}:",
+            parent=parent,
+        )
+
+        if title is None:
+            return
+        title = " ".join(title.split())
+
+        if not title:
+            messagebox.showerror(
+                "Name required",
+                "Enter an assignment name.",
+                parent=parent
+            )
+            return
+
+        time_value = ask_for_time(date, title)
+        if time_value is None:
+            return  # Cancelling either dialog leaves the calendar data unchanged.
+
+        self.assignments.setdefault(date, []).append({"title": title, "time": time_value})
+        update_calendar_day() #Idk how to deal with this yet
+        status.set(f"Added '{title}' to {date.isoformat()}.")
+
+    def remove_assignment():
+        date = self.selected_date
+        index = choose_assignment(date, "Remove assignment")
+        if index is None:
+            return
+        removed = self.assignments[date].pop(index)
+        if not self.assignments[date]:
+            del self.assignments[date]
+
+        update_calendar_day() #Idk wat to do with this
+        status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
+
+
+    def block_out():
+        date = self.selected_date
+        if date in self.blocked_dates:
+            self.blocked_dates.remove(date)
+            message = f"Unblocked {date.isoformat()}."
+        else:
+            self.blocked_dates.add(date)
+            message = f"Blocked {date.isoformat()}. Existing assignments are kept."
+        update_calendar_day() #Idk wat to do with this
+        status.set(message)
+
+
+    def edit_time():
+        date = self.selected_date
+        index = choose_assignment(date, "Edit time")
+        if index is None:
+            return
+        self.assignment = self.assignments[date][index]
+        new_time = ask_for_time(date, self.assignment["title"], self.assignment["time"])
+        if new_time is None:
+            return
+        self.assignment["time"] = new_time
+        update_calendar_day()
+        status.set(f"Updated time for '{assignment['title']}' on {date.isoformat()}.")
+
+
 
 class AssignmentPicker(simpledialog.Dialog):
     """A child dialog for choosing which assignment to remove or edit."""
@@ -117,76 +195,6 @@ class AssignmentPicker(simpledialog.Dialog):
 
     def apply(self):
         self.result = self.listbox.curselection()[0]
-
-
-
-# MENU ACTIONS
-def add_assignment():
-    date = selected_date
-    if date in blocked_dates:
-        messagebox.showinfo(
-            "Date blocked", "Unblock this date before adding an assignment.",
-            parent=window,
-        )
-        return
-
-    title = simpledialog.askstring(
-        f"Add assignment - {date.isoformat()}",
-        f"Assignment name for {date_text(date)}:",
-        parent=window,
-    )
-    if title is None:
-        return
-    title = " ".join(title.split())
-    if not title:
-        messagebox.showerror("Name required", "Enter an assignment name.", parent=window)
-        return
-
-    time_value = ask_for_time(date, title)
-    if time_value is None:
-        return  # Cancelling either dialog leaves the calendar data unchanged.
-
-    assignments.setdefault(date, []).append({"title": title, "time": time_value})
-    update_calendar_day()
-    status.set(f"Added '{title}' to {date.isoformat()}.")
-
-
-def remove_assignment():
-    date = selected_date
-    index = choose_assignment(date, "Remove assignment")
-    if index is None:
-        return
-    removed = assignments[date].pop(index)
-    if not assignments[date]:
-        del assignments[date]
-    update_calendar_day()
-    status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
-
-
-def block_out():
-    date = selected_date
-    if date in blocked_dates:
-        blocked_dates.remove(date)
-        message = f"Unblocked {date.isoformat()}."
-    else:
-        blocked_dates.add(date)
-        message = f"Blocked {date.isoformat()}. Existing assignments are kept."
-    update_calendar_day()
-    status.set(message)
-
-
-def edit_time():
-    date = selected_date
-    index = choose_assignment(date, "Edit time")
-    if index is None:
-        return
-    assignment = assignments[date][index]
-    new_time = ask_for_time(date, assignment["title"], assignment["time"])
-    if new_time is None:
-        return
-    assignment["time"] = new_time
-    update_calendar_day()
-    status.set(f"Updated time for '{assignment['title']}' on {date.isoformat()}.")
 
 
 # SELECT A DATE AND OPEN ITS CONTEXT MENU
