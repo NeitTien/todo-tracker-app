@@ -16,9 +16,14 @@ class Settings:
         
 
     def open_settings(self):
+        #Create the setting window
         self.settings_view = tk.Toplevel(self.parent)
         self.settings_view.title("Settings")
         self.settings_view.geometry("900x600")
+
+        #Expand the frame
+        self.settings_view.columnconfigure(0, weight=1)
+        self.settings_view.rowconfigure(0, weight=1)
 
         #Create the settings section
         self.frame_default()
@@ -29,7 +34,7 @@ class Settings:
             text="Save",
             command=self.save_user_settings
         )
-        self.save_button.grid(row=1, column=0, pady=20)
+        self.save_button.grid(row=1, column=0, pady=20, sticky="s")
 
     def load_settings(self):
         with open(SETTINGS_FILE, "r") as file:
@@ -44,7 +49,11 @@ class Settings:
         return self.load_settings().get("default_view", "calendar")
 
     def frame_default(self):
-        self.default_frame = tk.Frame(self.settings_view)
+        self.default_frame = tk.Frame(
+            self.settings_view,
+            highlightbackground="black",
+            highlightthickness=1
+        )
         self.default_frame.grid(
             row=0,
             column=0,
@@ -67,7 +76,7 @@ class Settings:
         default_label.grid(
             row=0,
             column=0,
-            sticky="w"
+            sticky="nw"
         )
 
         calendar_default = tk.Radiobutton(
@@ -76,7 +85,7 @@ class Settings:
             variable=self.default_view,
             value="calendar"
         )
-        calendar_default.grid(row=1, column=0, sticky="w")
+        calendar_default.grid(row=1, column=0, sticky="nw")
 
         dashboard_default = tk.Radiobutton(
             self.default_frame,
@@ -84,7 +93,7 @@ class Settings:
             variable=self.default_view,
             value="dashboard"
         )
-        dashboard_default.grid(row=2, column=0, sticky="w")
+        dashboard_default.grid(row=2, column=0, sticky="nw")
     
     def save_user_settings(self):
         settings = self.load_settings()

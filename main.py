@@ -40,6 +40,7 @@ if settings_option.get_default_view() == "calendar":
     sidebar.switch_calendar_view()
 else:
     sidebar.switch_dashboard_view()
+    
 #To-do List View with Main Frame as Parent (currently unused)
 #todolist_view = tk.Frame(main_frame)
 
