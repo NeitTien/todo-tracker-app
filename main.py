@@ -35,6 +35,13 @@ settings = settings.Settings(window)
 #Sidebar View
 sidebar = sidebar_view.SidebarView(window, calendar, dashboard, settings)
 
+#Some logic
+current_value = settings.default_view()
+if (current_value == "calendar"):
+    sidebar.switch_calendar_view()
+else:
+    sidebar.switch_dashboard_view()
+
 #To-do List View with Main Frame as Parent (currently unused)
 #todolist_view = tk.Frame(main_frame)
 
