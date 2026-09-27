@@ -8,11 +8,12 @@ import calendar_view
 import dashboard_view
 
 class SidebarView:
-    def __init__(self, parent, calendar, dashboard):
+    def __init__(self, parent, calendar, dashboard, settings):
         self.parent = parent
         self.calendar = calendar
         self.dashboard = dashboard
-        
+        self.settings = settings
+
         #Execute those functions
         self.create_widgets()
         self.create_button()
@@ -52,7 +53,7 @@ class SidebarView:
             self.sidebar_view,
             text="Settings",
             font=("Arial", 12),
-            command=lambda: settings.open_settings(self.parent.parent)
+            command=lambda: self.settings.open_settings()
         )
         self.button_settings.grid(row=2, column=0, pady=(0, 30))
 

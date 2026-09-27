@@ -29,8 +29,11 @@ calendar = calendar_view.CalendarView(main_frame)
 #Dashboard View
 dashboard = dashboard_view.DashboardView(main_frame)
 
+#Settings Option
+settings = settings.Settings(window)
+
 #Sidebar View
-sidebar = sidebar_view.SidebarView(window, calendar, dashboard)
+sidebar = sidebar_view.SidebarView(window, calendar, dashboard, settings)
 
 #To-do List View with Main Frame as Parent (currently unused)
 #todolist_view = tk.Frame(main_frame)
