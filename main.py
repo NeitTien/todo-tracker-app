@@ -38,8 +38,7 @@ main_frame.grid(row=0, column=1, pady= 30, sticky="nsew")
 calendar = calendar_view.CalendarView(main_frame)
 
 #Dashboard View with Main Frame as Parent
-dashboard_view = dashboard_view.create_dashboard(main_frame)
-dashboard_view.grid(row=0, column=0, sticky="nsew")
+dashboard = dashboard_view.DashboardView(main_frame)
 
 #To-do List View with Main Frame as Parent (currently unused)
 #todolist_view = tk.Frame(main_frame)
