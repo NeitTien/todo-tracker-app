@@ -1,7 +1,7 @@
 import tkinter as tk
 import calendar
 import datetime
-import holidays
+#import holidays #Potentially can be used to insert holidays to the calendar
 import settings
 import dashboard_view
 import calendar_view

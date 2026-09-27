@@ -1,11 +1,17 @@
 import tkinter as tk
 import datetime
 import calendar
+
+#Classes in file created
 import settings
+import calendar_view
+import dashboard_view
 
 class SidebarView:
-    def __init__(self, parent):
+    def __init__(self, parent, calendar, dashboard):
         self.parent = parent
+        self.calendar = calendar
+        self.dashboard = dashboard
 
     def create_widgets(self):
         #Doesnt need to expand frame because parent is window
@@ -22,25 +28,33 @@ class SidebarView:
             sticky="nsew"
         )
     def create_button(self):
-        self.button_calendar_view = tk.Button(
+        self.button_calendar = tk.Button(
             self.sidebar_view,
             text="Calendar View",
             font=("Arial", 12),
-            command=
+            command=self.switch_calendar_view
         )
-        self.button_calendar_view.grid(row=0, column=0)
+        self.button_calendar.grid(row=0, column=0)
 
-        self.button_dashboard_view = tk.Button(
+        self.button_dashboard = tk.Button(
             self.sidebar_view,
             text="Dashboard View",
             font=("Arial", 12),
-            command=
+            command=self.switch_dashboard_view
         )
-        self.button_dashboard_view.grid(row=1, column=0, pady=(30, 30))
+        self.button_dashboard.grid(row=1, column=0, pady=(30, 30))
 
         self.button_settings = tk.Button(
             self.sidebar_view,
             text="Settings",
-            font=("Arial", 12)
-            command=lambda:
+            font=("Arial", 12),
+            command=lambda: settings.open_settings(self.parent.parent)
         )
+        self.button_settings.grid(row=2, column=0, pady=(0, 30))
+
+    def switch_calendar_view(self):
+        self.calendar.calendar_view.tkraise()
+
+    def switch_dashboard_view(self):
+        self.dashboard.dashboard_view.tkraise()
+
