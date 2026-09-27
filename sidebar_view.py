@@ -12,6 +12,10 @@ class SidebarView:
         self.parent = parent
         self.calendar = calendar
         self.dashboard = dashboard
+        
+        #Execute those functions
+        self.create_widgets()
+        self.create_button()
 
     def create_widgets(self):
         #Doesnt need to expand frame because parent is window
