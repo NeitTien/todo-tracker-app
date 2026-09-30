@@ -9,57 +9,67 @@ import sidebar_view
 from pathlib import Path
 
 
-class App(tk.Tk()):
+class App(tk.Tk):
     def __init__(self):
+        #This INIT a WINDOW object for Tkinter Function
         super().__init__()
         self.title("Limiter")
         self.geometry("1600x900")
 
+        #Icon for the application
+        self.BASE_DIR = Path(__file__).resolve().parent #relative Path to the main.py file
+        self.icon_path = self.BASE_DIR / "assets" / "icon.png" #location of icon
+        self.icon = tk.PhotoImage(file=self.icon_path) #icon object
+        self.iconphoto(True, self.icon) #True mean use the icon as default for this
 
-#This INIT a WINDOW object for Tkinter Function
-window = tk.Tk()
-window.title("Limiter")
-window.geometry("1600x900")
+        #Execute these function
+        self.create_frames()
+        self.some_logic()
+        self.app_scaling()
 
-#Icon for the application
-BASE_DIR = Path(__file__).resolve().parent #relative Path to the main.py file
-icon_path = BASE_DIR / "assets" / "icon.png" #location of icon
-icon = tk.PhotoImage(file=icon_path) #icon object
-window.iconphoto(True, icon) #True mean use the icon as default for this app
+    def create_frames(self):
+        #Main Frame with the App as Parent
+        self.main_frame = tk.Frame(self)
+        self.main_frame.grid(
+            row=0,
+            column=1,
+            pady=30,
+            sticky="nsew"
+        )
 
-#Main Frame with Window as Parent
-main_frame = tk.Frame(window)
-main_frame.grid(row=0, column=1, pady= 30, sticky="nsew")
+        #Calendar View object
+        self.calendar = calendar_view.CalendarView(self.main_frame)
 
-#Calendar View
-calendar = calendar_view.CalendarView(main_frame)
+        #Dashboard View object
+        self.dashboard = dashboard_view.DashboardView(self.main_frame)
 
-#Dashboard View
-dashboard = dashboard_view.DashboardView(main_frame)
+        #Settings Option object
+        self.settings = settings.Settings(self)
 
-#Settings Option
-settings_option = settings.Settings(window)
+        #Sidebar View object
+        self.sidebar = sidebar_view.SidebarView(self, self.calendar, self.dashboard, self.settings)
 
-#Sidebar View
-sidebar = sidebar_view.SidebarView(window, calendar, dashboard, settings_option)
+    def some_logic(self):
+        if self.settings.get_default_view() == "calendar":
+            self.sidebar.switch_calendar_view()
+        else:
+            self.sidebar.switch_dashboard_view()
+    def app_scaling(self):
+        #Window Grid behavior
+        self.grid_columnconfigure(0, weight=0) #Sidebar Frame
+        self.grid_columnconfigure(1, weight=1) #Main Frame
+        self.grid_rowconfigure(0, weight=1)
 
-#Some logic
-if settings_option.get_default_view() == "calendar":
-    sidebar.switch_calendar_view()
-else:
-    sidebar.switch_dashboard_view()
+        #Main Frame Grid behavior
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(0, weight=1)
+
+
+
     
 #To-do List View with Main Frame as Parent (currently unused)
 #todolist_view = tk.Frame(main_frame)
 
-#Window Grid behavior
-window.grid_columnconfigure(0, weight=0) #Sidebar Frame
-window.grid_columnconfigure(1, weight=1) #Main Frame
-window.grid_rowconfigure(0, weight=1)
-
-#Main Frame Grid behavior
-main_frame.grid_columnconfigure(0, weight=1)
-main_frame.grid_rowconfigure(0, weight=1)
 
 place_holder_value=1
 
