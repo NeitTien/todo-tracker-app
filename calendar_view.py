@@ -2,6 +2,7 @@ import tkinter as tk
 import datetime
 import calendar
 
+import assignment_picker
 #CALENDAR GUI
 #This is enum for Months and Days
 months = [
@@ -13,6 +14,7 @@ days = [
     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
 ]
 
+
 class CalendarView:
     def __init__(self, parent):
         #This function run when creating a CalendarView object
@@ -23,9 +25,13 @@ class CalendarView:
         self.current_year = self.today.year
         self.current_month = self.today.month
         self.current_day = self.today.day
-
+        
         #For the assignment_picker.py
         #self.selected_date = self.today
+        #Create an assignment object from assignment_picker.py
+        #When there is any changes this object will pass the on_change param 
+        # and request the calendar_view.py to redraw the GUI immediately
+        self.assignment_manager = assignment_picker.AssignmentManager(self.parent, None)
 
         #This will return a list of lists, each list is a week of a month
         self.current_day_of_month = calendar.Calendar().monthdatescalendar(
@@ -63,6 +69,7 @@ class CalendarView:
         self.calendar_view.grid_columnconfigure(0, weight=1)
         self.calendar_view.grid_rowconfigure(0, weight=0) #Fixed for Header
         self.calendar_view.grid_rowconfigure(1, weight=1) #Grid
+
 
         #Calendar Header
         self.calendar_header = tk.Frame(

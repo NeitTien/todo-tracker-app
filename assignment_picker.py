@@ -67,7 +67,7 @@ class AssignmentManager:
             if value is None:
                 return None
             try:
-                return normalize_time(value)
+                return self.normalize_time(value)
             except ValueError:
                 messagebox.showerror(
                     "Invalid time",
@@ -100,7 +100,7 @@ class AssignmentManager:
 
         title = simpledialog.askstring(
             f"Add assignment - {date.isoformat()}",
-            f"Assignment name for {date_text(date)}:",
+            f"Assignment name for {self.date_text(date)}:",
             parent=self.parent,
         )
 
