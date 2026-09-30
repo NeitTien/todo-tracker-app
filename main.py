@@ -1,13 +1,12 @@
 import tkinter as tk
 import calendar
 import datetime
+from pathlib import Path
 #import holidays #Potentially can be used to insert holidays to the calendar
 import settings
 import dashboard_view
 import calendar_view
 import sidebar_view
-from pathlib import Path
-
 
 class App(tk.Tk):
     def __init__(self):
@@ -26,7 +25,7 @@ class App(tk.Tk):
         self.create_frames()
         self.some_logic()
         self.app_scaling()
-
+    
     def create_frames(self):
         #Main Frame with the App as Parent
         self.main_frame = tk.Frame(self)
