@@ -8,6 +8,14 @@ import calendar_view
 import sidebar_view
 from pathlib import Path
 
+
+class App(tk.Tk()):
+    def __init__(self):
+        super().__init__()
+        self.title("Limiter")
+        self.geometry("1600x900")
+
+
 #This INIT a WINDOW object for Tkinter Function
 window = tk.Tk()
 window.title("Limiter")
@@ -56,4 +64,5 @@ main_frame.grid_rowconfigure(0, weight=1)
 place_holder_value=1
 
 #This make the app stay opened and not instantly close after opening
-window.mainloop()
+app = App()
+app.mainloop()
