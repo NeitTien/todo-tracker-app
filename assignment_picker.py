@@ -143,7 +143,7 @@ class AssignmentManager:
 
         title = simpledialog.askstring(
             f"Add assignment - {date.isoformat()}",
-            f"Assignment name for {date_text(date)}:",
+            f"Assignment name for {self.date_text(date)}:",
             parent=self.parent,
         )
 
