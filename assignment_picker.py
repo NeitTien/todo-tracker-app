@@ -8,7 +8,6 @@ Edit time changes an assignment's due time, using a 24-hour HH:MM value.
 Blocked dates reject new assignments; existing ones can still be managed.
 """
 
-import calendar
 import datetime
 import tkinter as tk
 from tkinter import simpledialog, messagebox
@@ -39,6 +38,50 @@ class AssignmentManager:
         self.is_macos = parent.tk.call("tk", "windowingsystem") == "aqua"
         self.context_click = "<Button-2>" if self.is_macos else "<Button-3>"
 
+        self.menu = tk.Menu(parent, tearoff=False)
+        self.menu.add_command(
+            label="Add assignment",
+            command=self.add_assignment
+        )
+        self.menu.add_command(
+            label="Remove assignment",
+            command=self.remove_assignment
+        )
+        self.menu.add_separator()
+        self.menu.add_command(
+            label="Block out date",
+            command=self.block_out
+        )
+        self.menu.add_command(
+            label="Edit time",
+            command=self.edit_time
+        )
+
+        # Optional: CalendarView can point these at real widgets
+        # (a Label and a Listbox) via attach_details_widgets(), so
+        # update_selected_details() has somewhere to write. Left as
+        # None here so this class works even before that's wired up.
+        self.selected_date_label = None
+        self.assignment_list = None
+
+    def attach_details_widgets(self, selected_date_label, assignment_list):
+        #Point this at the widgets that show the selected
+        #date and its assignment list, then do an initial render
+        self.selected_date_label = selected_date_label
+        self.assignment_list = assignment_list
+        self.update_selected_details()
+
+    def notify_change(self):
+        if self.on_change:
+            self.on_change()
+
+    def get_assignments(self, date):
+        return self.assignment.get(date, [])
+    
+    def is_blocked(self, date):
+        return date in self.blocked_dates
+
+
     def date_text(self, date):
         return date.strftime("%A, %B %d, %Y")
 
@@ -67,7 +110,7 @@ class AssignmentManager:
             if value is None:
                 return None
             try:
-                return normalize_time(value)
+                return self.normalize_time(value)
             except ValueError:
                 messagebox.showerror(
                     "Invalid time",
