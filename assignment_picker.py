@@ -17,13 +17,14 @@ from tkinter import simpledialog, messagebox
 #     {"title": "Finish Python homework", "time": "14:30"}
 # ]
 
-date_buttons = {} #I dont know wat this is for yet
+#date_buttons = {} #I dont know wat this is for yet
 
 class AssignmentManager:
     def __init__(self, parent, on_change=None):
         
         self.parent = parent #Parent is the main_frame
         self.on_change = on_change
+
         #Create variable related to the assignment
         self.assignments = {}
         self.blocked_dates = set()
@@ -38,6 +39,7 @@ class AssignmentManager:
         self.is_macos = parent.tk.call("tk", "windowingsystem") == "aqua"
         self.context_click = "<Button-2>" if self.is_macos else "<Button-3>"
 
+        #menu = tk.Menu(window, tearoff=False) should be (self.parent.parent.parent)
         self.menu = tk.Menu(parent, tearoff=False)
         self.menu.add_command(
             label="Add assignment",
@@ -76,11 +78,10 @@ class AssignmentManager:
             self.on_change()
 
     def get_assignments(self, date):
-        return self.assignment.get(date, [])
+        return self.assignments.get(date, [])
     
     def is_blocked(self, date):
         return date in self.blocked_dates
-
 
     def date_text(self, date):
         return date.strftime("%A, %B %d, %Y")
@@ -179,7 +180,6 @@ class AssignmentManager:
         update_calendar_day() #Idk wat to do with this
         self.status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
 
-
     def block_out(self):
         date = self.selected_date
         if date in self.blocked_dates:
@@ -190,7 +190,6 @@ class AssignmentManager:
             message = f"Blocked {date.isoformat()}. Existing assignments are kept."
         update_calendar_day() #Idk wat to do with this
         self.status.set(message)
-
 
     def edit_time(self):
         date = self.selected_date
@@ -210,6 +209,45 @@ class AssignmentManager:
         self.assignment["time"] = new_time
         update_calendar_day()
         self.status.set(f"Updated time for '{self.assignment['title']}' on {date.isoformat()}.")
+    
+    # SELECT A DATE AND OPEN ITS CONTEXT MENU
+    def update_selected_details(self):
+        if self.selected_date_label is None or self.assignment_list is None:
+            return #attach_details_widgets() hasnt been called yet
+
+        blocked = " - BLOCKED" if self.selected_date in self.blocked_dates else ""
+
+        self.selected_date_label.config(text=f"{self.date_text(self.selected_date)}{blocked}")
+        self.assignment_list.delete(0, tk.END)
+
+        items = self.assignments.get(self.selected_date, [])
+        for assignment in items:
+            self.assignment_list.insert(tk.END, self.assignment_text(assignment))
+        if not items:
+            self.assignment_list.insert(tk.END, "No assignments on this date.")
+
+
+    def select_date(self, date):
+        self.selected_date = date
+        self.update_selected_details()
+        #Cell restyling (highlight border) is CalendarView part
+        #since it owns the frams - on_change triggers that redraw
+        self.notify_change()
+
+
+    def show_menu(self, event, date):
+        self.select_date(date)
+        has_assignments = bool(self.assignments.get(date))
+
+        # Indices match the menu entries created in create_gui(); 2 is a separator.
+        self.menu.entryconfig(0, state="disabled" if date in self.blocked_dates else "normal")
+        self.menu.entryconfig(1, state="normal" if has_assignments else "disabled")
+        self.menu.entryconfig(
+            3, label="Unblock date" if date in self.blocked_dates else "Block out date"
+        )
+        self.menu.entryconfig(4, state="normal" if has_assignments else "disabled")
+        self.menu.tk_popup(event.x_root, event.y_root)
+        return "break"
 
 
 
@@ -248,50 +286,11 @@ class AssignmentPicker(simpledialog.Dialog):
         self.result = self.listbox.curselection()[0]
 
 
-# SELECT A DATE AND OPEN ITS CONTEXT MENU
-def update_selected_details(self):
-    if self.selected_date_label is None or self.assignment_list is None:
-        return #attach_details_widgets() hasnt been called yet
 
-    blocked = " - BLOCKED" if self.selected_date in self.blocked_dates else ""
-
-    self.selected_date_label.config(text=f"{date_text(selected_date)}{blocked}")
-    self.assignment_list.delete(0, tk.END)
-
-    items = self.assignments.get(self.selected_date, [])
-    for assignment in items:
-        self.assignment_list.insert(tk.END, assignment_text(assignment))
-    if not items:
-        self.assignment_list.insert(tk.END, "No assignments on this date.")
-
-
-def select_date(self, date):
-    self.selected_date = date
-    self.update_selected_details()
-    #Cell restyling (highlight border) is CalendarView part
-    #since it owns the frams - on_change triggers that redraw
-    self.notify_change()
-    for button_date, button in date_buttons.items():
-        button.config(relief="sunken" if button_date == date else "raised")
-    update_selected_details()
-
-
-def show_menu(event, date):
-    select_date(date)
-    has_assignments = bool(assignments.get(date))
-
-    # Indices match the menu entries created in create_gui(); 2 is a separator.
-    menu.entryconfig(0, state="disabled" if date in blocked_dates else "normal")
-    menu.entryconfig(1, state="normal" if has_assignments else "disabled")
-    menu.entryconfig(
-        3, label="Unblock date" if date in blocked_dates else "Block out date"
-    )
-    menu.entryconfig(4, state="normal" if has_assignments else "disabled")
-    menu.tk_popup(event.x_root, event.y_root)
-    return "break"
 
 
 # CALENDAR VIEW FUNCTIONS
+'''
 def update_calendar_day():
     global current_day_of_month
     # Redraw widgets only. Assignments and blocked dates live in separate data.
@@ -338,7 +337,7 @@ def update_calendar_day():
                     lambda event, date=cell_date: show_menu(event, date),
                 )
     update_selected_details()
-
+'''
 
 #def change_month(offset):
 
@@ -348,6 +347,7 @@ def update_calendar_day():
 
 # SIDEBAR FUNCTIONS
 
+'''
 def create_gui():
     """Build the existing Limiter window, its views, and its single menu."""
     global window, calendar_view, dashboard_view, calendar_grid
@@ -377,15 +377,11 @@ def create_gui():
              anchor="w", fg="#555555").grid(row=4, column=0, sticky="ew")
 
     # One menu belongs to the existing window; no second tk.Tk() is needed.
-    menu = tk.Menu(window, tearoff=False)
-    menu.add_command(label="Add assignment", command=add_assignment)
-    menu.add_command(label="Remove assignment", command=remove_assignment)
-    menu.add_separator()
-    menu.add_command(label="Block out date", command=block_out)
-    menu.add_command(label="Edit time", command=edit_time)
+
 
     is_macos = window.tk.call("tk", "windowingsystem") == "aqua"
     context_click = "<Button-2>" if is_macos else "<Button-3>"
     update_calendar_day()  # Same renderer is used at startup and after navigation.
     switch_calendar_view()
     return window
+'''

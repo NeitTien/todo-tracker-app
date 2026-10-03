@@ -2,7 +2,7 @@ import tkinter as tk
 import datetime
 import calendar
 
-import assignment_picker
+from assignment_picker import AssignmentManager
 #CALENDAR GUI
 #This is enum for Months and Days
 months = [
@@ -31,7 +31,7 @@ class CalendarView:
         #Create an assignment object from assignment_picker.py
         #When there is any changes this object will pass the on_change param 
         # and request the calendar_view.py to redraw the GUI immediately
-        self.assignment_manager = assignment_picker.AssignmentManager(self.parent, None)
+        self.assignment_manager = AssignmentManager(parent, on_change=self.update_calendar_day)
 
         #This will return a list of lists, each list is a week of a month
         self.current_day_of_month = calendar.Calendar().monthdatescalendar(
@@ -44,6 +44,7 @@ class CalendarView:
         self.create_widgets()
         self.create_basic_label()
         self.create_weekday_label()
+        self.create_details_panel()
         self.create_calendardays_label()
         self.create_button()
     
@@ -69,6 +70,7 @@ class CalendarView:
         self.calendar_view.grid_columnconfigure(0, weight=1)
         self.calendar_view.grid_rowconfigure(0, weight=0) #Fixed for Header
         self.calendar_view.grid_rowconfigure(1, weight=1) #Grid
+        self.calendar_view.grid_rowconfigure(2, weight=1) #Fixed for Details panel
 
 
         #Calendar Header
@@ -142,9 +144,50 @@ class CalendarView:
                 padx=2,
                 pady=30
             )
+    #Shows the selected date and its assignment list below the grid
+    #Built here in CalendarView
+    #passed to AssignmentManager so it knows where to write updates
+    def create_details_panel(self):
+        details_frame = tk.Frame(self.calendar_view)
+        details_frame.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            pady=(12,0)
+        )
+        details_frame.columnconfigure(0, weight=1)
+
+        selected_date_label = tk.Label(
+            details_frame,
+            font=("Arial", 12),
+            anchor="w"
+        )
+        selected_date_label.grid(
+            row=0,
+            column=0,
+            sticky="ew"
+        )
+
+        assignment_list = tk.Listbox(details_frame, height=4, font=("Arial", 12))
+        assignment_list.grid(row=1, column=0, sticky="ew", pady=5)
+
+        scrollbar = tk.Scrollbar(details_frame, command=assignment_list.yview)
+        scrollbar.grid(row=1, column=1, sticky="ns", pady=5)
+        assignment_list.config(yscrollcommand=scrollbar.set)
+        
+        tk.Label(
+            details_frame,
+            textvariable=self.assignment_manager.status,
+            anchor="w",
+            wraplength=1000
+        ).grid(row=2, column=0, sticky="ew", pady=6)
+
+        self.assignment_manager.attach_details_widgets(selected_date_label, assignment_list)
 
     #This will generate Calendar Days (Days of a month) when program first run
     def create_calendardays_label(self):
+        self.build_calendar_grid()
+        '''
         #Days of a month Label
         week_size = len(self.current_day_of_month)
         day_of_week = len(self.current_day_of_month[0])
@@ -215,6 +258,7 @@ class CalendarView:
                     padx=5,
                     pady=5
                 )
+        '''
 
     #Create Next month, Prev month button
     def create_button(self):
@@ -287,6 +331,9 @@ class CalendarView:
         for widget in self.calendar_grid.winfo_children():
             widget.destroy()
 
+        self.build_calendar_grid()
+
+    def build_calendar_grid(self):
         #Recheck the current day of month
         self.current_day_of_month = calendar.Calendar().monthdatescalendar(
             self.current_year, self.current_month)
@@ -300,7 +347,6 @@ class CalendarView:
                 self.calendar_grid.grid_rowconfigure(row, weight=1, uniform="row", minsize=0)
             else:
                 self.calendar_grid.grid_rowconfigure(row, weight=0, uniform="", minsize=0)
-            #self.calendar_grid.grid_rowconfigure(row, weight=weight, uniform="row", minsize=0)
 
         for column in range(day_of_week):
             self.calendar_grid.grid_columnconfigure(column, weight=1, uniform="col")
@@ -316,12 +362,21 @@ class CalendarView:
                     background_color = "#FFFFFF"
                     text_color = "#000000"
 
+                #checking the state of the day from AssignmentManager
+                day_assignments = self.assignment_manager.get_assignments(day_obj)
+                is_blocked = self.assignment_manager.is_blocked(day_obj)
+                is_selected = (day_obj == self.assignment_manager.selected_date)
+
+                if is_blocked:
+                    background_color = "#F1BABA"
+
                 #Frame for each day
                 day_frame = tk.Frame(
                     self.calendar_grid,
                     background=background_color,
                     highlightbackground="#D0D0D0",
-                    highlightthickness=1,
+                    #Thicker border for selected day.
+                    highlightthickness=3 if is_selected else 1,
                     bd=0
                 )
                 day_frame.grid(
@@ -352,3 +407,43 @@ class CalendarView:
                     padx=5,
                     pady=5
                 )
+
+                #Label for BLOCKED date / assignment count
+                #create when there is something
+                info_lines = []
+                if is_blocked:
+                    info_lines.append("BLOCKED")
+                if day_assignments:
+                    count = len(day_assignments)
+                    info_lines.append(f"{count} assignment" if count == 1 else f"{count} assignments")
+
+                info_label = None
+                if info_lines:
+                    info_label = tk.Label(
+                        day_frame,
+                        text="\n".join(info_lines),
+                        font=("Arial", 9),
+                        background=background_color,
+                        foreground=text_color,
+                        anchor="w",
+                        justify="left"
+                    )
+                    info_label.grid(row=1, column=0, sticky="sw", padx=5, pady=5)
+
+                #Click + right-click bindings. Bound to the frame AND its
+                #labels
+                clickable_widgets = [day_frame, day_label] + ([info_label] if info_label else [])
+                for widget in clickable_widgets:
+                    widget.bind(
+                        "<Button-1>",
+                        lambda event, date=day_obj: self.assignment_manager.select_date(date)
+                    )
+                    widget.bind(
+                        self.assignment_manager.context_click,
+                        lambda event, date=day_obj: self.assignment_manager.show_menu(event, date)
+                    )
+                    if self.assignment_manager.is_macos:
+                        widget.bind(
+                            "<Control-Button-1>",
+                            lambda event, date=day_obj: self.assignment_manager.show_menu(event, date)
+                        )
