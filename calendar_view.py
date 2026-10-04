@@ -26,11 +26,9 @@ class CalendarView:
         self.current_month = self.today.month
         self.current_day = self.today.day
         
-        #For the assignment_picker.py
-        #self.selected_date = self.today
         #Create an assignment object from assignment_picker.py
-        #When there is any changes this object will pass the on_change param 
-        # and request the calendar_view.py to redraw the GUI immediately
+        #when there is change it will trigger the update_calendar_day function
+        #which will make the CalendarView class redraw the UI
         self.assignment_manager = AssignmentManager(parent, on_change=self.update_calendar_day)
 
         #This will return a list of lists, each list is a week of a month
@@ -41,12 +39,12 @@ class CalendarView:
         self.frame = tk.Frame(parent)
 
         #Execute those functions
-        self.create_widgets()
+        self.create_widgets() #Frame
         self.create_basic_label()
-        self.create_weekday_label()
+        self.create_weekday_label() #Monday -> Sunday
         self.create_details_panel()
         self.create_calendardays_label()
-        self.create_button()
+        self.create_button() #Next month, previous month button
     
     def create_widgets(self):
         #Expand the Parent Frame
@@ -144,6 +142,7 @@ class CalendarView:
                 padx=2,
                 pady=30
             )
+
     #Shows the selected date and its assignment list below the grid
     #Built here in CalendarView
     #passed to AssignmentManager so it knows where to write updates
@@ -298,7 +297,6 @@ class CalendarView:
             self.current_year -= 1
 
         #Update the label to dispay correctly
-        self.update_grid_row()
         self.update_year_label()
         self.update_month_label()
         self.update_calendar_day()
@@ -325,7 +323,6 @@ class CalendarView:
 
     #For Calendar Day (Days of a month)
     def update_calendar_day(self):
-        
         #This for-loop will destroy the previous grid
         #so that the calendar will not be overlapped
         #the data is not affected by this deletion
