@@ -66,9 +66,9 @@ class CalendarView:
         #Calendar scaling configuration
         #This is needed so that header and grid can expand
         self.calendar_view.grid_columnconfigure(0, weight=1)
-        self.calendar_view.grid_rowconfigure(0, weight=0) #Fixed for Header
-        self.calendar_view.grid_rowconfigure(1, weight=1) #Grid
-        self.calendar_view.grid_rowconfigure(2, weight=1) #Fixed for Details panel
+        self.calendar_view.grid_rowconfigure(0, weight=0) #Calendar Header
+        self.calendar_view.grid_rowconfigure(1, weight=5) #Calendar Grid
+        self.calendar_view.grid_rowconfigure(2, weight=1) #Details panel
 
 
         #Calendar Header
@@ -147,12 +147,15 @@ class CalendarView:
     #Built here in CalendarView
     #passed to AssignmentManager so it knows where to write updates
     def create_details_panel(self):
-        details_frame = tk.Frame(self.calendar_view)
+        details_frame = tk.Frame(
+            self.calendar_view,
+            highlightbackground="green",
+            highlightthickness=1
+        )
         details_frame.grid(
             row=2,
             column=0,
-            sticky="ew",
-            pady=(12,0)
+            sticky="nsew",
         )
         details_frame.columnconfigure(0, weight=1)
 
@@ -167,7 +170,7 @@ class CalendarView:
             sticky="ew"
         )
 
-        assignment_list = tk.Listbox(details_frame, height=4, font=("Arial", 12))
+        assignment_list = tk.Listbox(details_frame, height=6, font=("Arial", 12))
         assignment_list.grid(row=1, column=0, sticky="ew", pady=5)
 
         scrollbar = tk.Scrollbar(details_frame, command=assignment_list.yview)
@@ -177,9 +180,9 @@ class CalendarView:
         tk.Label(
             details_frame,
             textvariable=self.assignment_manager.status,
-            anchor="w",
+            anchor="sw",
             wraplength=1000
-        ).grid(row=2, column=0, sticky="ew", pady=6)
+        ).grid(row=2, column=0, sticky="nsew")
 
         self.assignment_manager.attach_details_widgets(selected_date_label, assignment_list)
 

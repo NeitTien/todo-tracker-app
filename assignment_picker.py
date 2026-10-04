@@ -165,7 +165,7 @@ class AssignmentManager:
             return  # Cancelling either dialog leaves the calendar data unchanged.
 
         self.assignments.setdefault(date, []).append({"title": title, "time": time_value})
-        update_calendar_day() #Idk how to deal with this yet
+        #update_calendar_day() #Idk how to deal with this yet
         self.status.set(f"Added '{title}' to {date.isoformat()}.")
 
     def remove_assignment(self):
@@ -177,7 +177,7 @@ class AssignmentManager:
         if not self.assignments[date]:
             del self.assignments[date]
 
-        update_calendar_day() #Idk wat to do with this
+        #update_calendar_day() #Idk wat to do with this
         self.status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
 
     def block_out(self):
@@ -188,7 +188,7 @@ class AssignmentManager:
         else:
             self.blocked_dates.add(date)
             message = f"Blocked {date.isoformat()}. Existing assignments are kept."
-        update_calendar_day() #Idk wat to do with this
+        #update_calendar_day() #Idk wat to do with this
         self.status.set(message)
 
     def edit_time(self):
@@ -207,7 +207,7 @@ class AssignmentManager:
         if new_time is None:
             return
         self.assignment["time"] = new_time
-        update_calendar_day()
+        #update_calendar_day()
         self.status.set(f"Updated time for '{self.assignment['title']}' on {date.isoformat()}.")
     
     # SELECT A DATE AND OPEN ITS CONTEXT MENU
