@@ -26,11 +26,9 @@ class CalendarView:
         self.current_month = self.today.month
         self.current_day = self.today.day
         
-        #For the assignment_picker.py
-        #self.selected_date = self.today
         #Create an assignment object from assignment_picker.py
-        #When there is any changes this object will pass the on_change param 
-        # and request the calendar_view.py to redraw the GUI immediately
+        #when there is change it will trigger the update_calendar_day function
+        #which will make the CalendarView class redraw the UI
         self.assignment_manager = AssignmentManager(parent, on_change=self.update_calendar_day)
 
         #This will return a list of lists, each list is a week of a month
@@ -41,12 +39,12 @@ class CalendarView:
         self.frame = tk.Frame(parent)
 
         #Execute those functions
-        self.create_widgets()
+        self.create_widgets() #Frame
         self.create_basic_label()
-        self.create_weekday_label()
+        self.create_weekday_label() #Monday -> Sunday
         self.create_details_panel()
         self.create_calendardays_label()
-        self.create_button()
+        self.create_button() #Next month, previous month button
     
     def create_widgets(self):
         #Expand the Parent Frame
@@ -68,9 +66,9 @@ class CalendarView:
         #Calendar scaling configuration
         #This is needed so that header and grid can expand
         self.calendar_view.grid_columnconfigure(0, weight=1)
-        self.calendar_view.grid_rowconfigure(0, weight=0) #Fixed for Header
-        self.calendar_view.grid_rowconfigure(1, weight=1) #Grid
-        self.calendar_view.grid_rowconfigure(2, weight=1) #Fixed for Details panel
+        self.calendar_view.grid_rowconfigure(0, weight=0) #Calendar Header
+        self.calendar_view.grid_rowconfigure(1, weight=5) #Calendar Grid
+        self.calendar_view.grid_rowconfigure(2, weight=1) #Details panel
 
 
         #Calendar Header
@@ -144,16 +142,20 @@ class CalendarView:
                 padx=2,
                 pady=30
             )
+
     #Shows the selected date and its assignment list below the grid
     #Built here in CalendarView
     #passed to AssignmentManager so it knows where to write updates
     def create_details_panel(self):
-        details_frame = tk.Frame(self.calendar_view)
+        details_frame = tk.Frame(
+            self.calendar_view,
+            highlightbackground="green",
+            highlightthickness=1
+        )
         details_frame.grid(
             row=2,
             column=0,
-            sticky="ew",
-            pady=(12,0)
+            sticky="nsew",
         )
         details_frame.columnconfigure(0, weight=1)
 
@@ -179,7 +181,7 @@ class CalendarView:
         tk.Label(
             details_frame,
             textvariable=self.assignment_manager.status,
-            anchor="w",
+            anchor="sw",
             wraplength=1000
         ).grid(row=3, column=0, sticky="ew", pady=6)
 
@@ -232,78 +234,6 @@ class CalendarView:
     #This will generate Calendar Days (Days of a month) when program first run
     def create_calendardays_label(self):
         self.build_calendar_grid()
-        '''
-        #Days of a month Label
-        week_size = len(self.current_day_of_month)
-        day_of_week = len(self.current_day_of_month[0])
-
-        #Expand column and row of each day
-        #Max number of week a month can have is 6
-        #if current_month has less than 6 weeks
-        #then the for-loop will assign weight = 1 those weeks
-        #and weight = 0 for non-exist weeks
-        for row in range(6):
-            if row < week_size:
-                self.calendar_grid.grid_rowconfigure(row, weight=1, uniform="row", minsize=0)
-            else:
-                self.calendar_grid.grid_rowconfigure(row, weight=0, uniform="", minsize=0)
-
-        for column in range(day_of_week):
-            self.calendar_grid.grid_columnconfigure(column, weight=1, uniform="col")
-
-        #For every week in a month
-        for week in range(0, week_size):
-            #For every day in a week
-            for day in range(0, day_of_week):
-                day_obj = self.current_day_of_month[week][day]
-
-                #This will make days that is not of current month grayed out
-                #696969 is gray color and FFFFFF is white color
-                #add foreground if want to change text_color
-                if day_obj.month != self.current_month:
-                    background_color = "#696969"
-                    text_color = "#CCCCCC"
-                else:
-                    background_color = "#FFFFFF"
-                    text_color = "#000000"
-                
-                #Frame for each day
-                day_frame = tk.Frame(
-                    self.calendar_grid,
-                    background=background_color,
-                    highlightbackground="#D0D0D0",
-                    highlightthickness=1,
-                    bd=0
-                )
-                day_frame.grid(
-                    row=week,
-                    column=day,
-                    sticky="nsew",
-                    padx=1,
-                    pady=1
-                )
-
-                day_frame.grid_columnconfigure(0, weight=1)
-                day_frame.grid_rowconfigure(1, weight=1)
-                #Prevent the frame from auto shrinking to fits the content inside
-                #day_frame.grid_propagate(False) 
-
-                day_label = tk.Label(
-                    day_frame,
-                    text=str(day_obj.day),
-                    font=("Arial", 12),
-                    background = background_color,
-                    foreground = text_color,
-                    anchor="ne"
-                )
-                day_label.grid(
-                    row=0,
-                    column=0,
-                    sticky="ne",
-                    padx=5,
-                    pady=5
-                )
-        '''
 
     #Create Next month, Prev month button
     def create_button(self):
@@ -343,7 +273,6 @@ class CalendarView:
             self.current_year -= 1
 
         #Update the label to dispay correctly
-        self.update_grid_row()
         self.update_year_label()
         self.update_month_label()
         self.update_calendar_day()
@@ -370,7 +299,6 @@ class CalendarView:
 
     #For Calendar Day (Days of a month)
     def update_calendar_day(self):
-        
         #This for-loop will destroy the previous grid
         #so that the calendar will not be overlapped
         #the data is not affected by this deletion
