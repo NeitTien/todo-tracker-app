@@ -172,7 +172,6 @@ class AssignmentManager:
             return  # Cancelling either dialog leaves the calendar data unchanged.
 
         self.assignments.setdefault(date, []).append({"title": title, "time": time_value})
-        #update_calendar_day() #Idk how to deal with this yet
         self.status.set(f"Added '{title}' to {date.isoformat()}.")
 
     def remove_assignment(self):
@@ -184,7 +183,6 @@ class AssignmentManager:
         if not self.assignments[date]:
             del self.assignments[date]
 
-        #update_calendar_day() #Idk wat to do with this
         self.status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
 
     def block_out(self):
@@ -195,7 +193,6 @@ class AssignmentManager:
         else:
             self.blocked_dates.add(date)
             message = f"Blocked {date.isoformat()}. Existing assignments are kept."
-        #update_calendar_day() #Idk wat to do with this
         self.status.set(message)
 
     def edit_time(self):
@@ -214,7 +211,6 @@ class AssignmentManager:
         if new_time is None:
             return
         self.assignment["time"] = new_time
-        #update_calendar_day()
         self.status.set(f"Updated time for '{self.assignment['title']}' on {date.isoformat()}.")
     
     #Switch the button next to the text box between "Add" (new assignment) and "Save" (editing one)
@@ -372,104 +368,3 @@ class AssignmentPicker(simpledialog.Dialog):
 
     def apply(self):
         self.result = self.listbox.curselection()[0]
-
-
-
-
-
-# CALENDAR VIEW FUNCTIONS
-'''
-def update_calendar_day():
-    global current_day_of_month
-    # Redraw widgets only. Assignments and blocked dates live in separate data.
-    for widget in calendar_grid.winfo_children():
-        widget.destroy()
-    date_buttons.clear()
-    current_day_of_month = cal.monthdatescalendar(current_year, current_month)
-
-    # Keeping weekday headings and date cells in one grid aligns their columns.
-    for column, day_name in enumerate(days):
-        calendar_grid.columnconfigure(column, weight=1, uniform="days")
-        tk.Label(calendar_grid, text=day_name, font=("Arial", 12)).grid(
-            row=0, column=column, padx=2, pady=8
-        )
-
-    for row, week in enumerate(current_day_of_month, start=1):
-        for column, cell_date in enumerate(week):
-            count = len(assignments.get(cell_date, []))
-            background_color = "#FFFFFF" if cell_date.month == current_month else "#B8B8B8"
-            lines = [str(cell_date.day)]
-            if cell_date in blocked_dates:
-                background_color = "#F1BABA"
-                lines.append("BLOCKED")
-            if count:
-                lines.append(f"{count} assignment" if count == 1 else f"{count} assignments")
-
-            day_button = tk.Button(
-                calendar_grid, text="\n".join(lines), font=("Arial", 12),
-                width=11, height=5, background=background_color,
-                relief="sunken" if cell_date == selected_date else "raised",
-                command=lambda date=cell_date: select_date(date),
-            )
-            day_button.grid(row=row, column=column, padx=2, pady=2, sticky="nsew")
-            date_buttons[cell_date] = day_button
-
-            # The default argument saves THIS cell's date for its callback.
-            day_button.bind(
-                context_click,
-                lambda event, date=cell_date: show_menu(event, date),
-            )
-            if is_macos:
-                day_button.bind(
-                    "<Control-Button-1>",
-                    lambda event, date=cell_date: show_menu(event, date),
-                )
-    update_selected_details()
-'''
-
-#def change_month(offset):
-
-    #selected_date = datetime.date(current_year, current_month, 1)
-
-    #status.set("Left-click a date to view assignments; right-click it for options.")
-
-# SIDEBAR FUNCTIONS
-
-'''
-def create_gui():
-    """Build the existing Limiter window, its views, and its single menu."""
-    global window, calendar_view, dashboard_view, calendar_grid
-    global month_label, year_label, selected_date_label, assignment_list
-    global status, menu, is_macos, context_click
-
-    details_frame = tk.Frame(calendar_view)
-    details_frame.grid(row=2, column=0, sticky="ew", pady=(12, 0))
-    details_frame.columnconfigure(0, weight=1)
-    selected_date_label = tk.Label(details_frame, font=("Arial", 12, "bold"), anchor="w")
-    selected_date_label.grid(row=0, column=0, sticky="ew")
-    assignment_list = tk.Listbox(details_frame, height=4, font=("Arial", 11))
-    assignment_list.grid(row=1, column=0, sticky="ew", pady=5)
-    scrollbar = tk.Scrollbar(details_frame, command=assignment_list.yview)
-    scrollbar.grid(row=1, column=1, sticky="ns", pady=5)
-    assignment_list.config(yscrollcommand=scrollbar.set)
-
-    status = tk.StringVar(
-        master=window,
-        value="Left-click a date to view assignments; right-click it for options.",
-    )
-    tk.Label(calendar_view, textvariable=status, anchor="w", wraplength=1000).grid(
-        row=3, column=0, sticky="ew", pady=6
-    )
-    tk.Label(calendar_view,
-             text="Session only: closing Limiter clears assignments and blocked dates.",
-             anchor="w", fg="#555555").grid(row=4, column=0, sticky="ew")
-
-    # One menu belongs to the existing window; no second tk.Tk() is needed.
-
-
-    is_macos = window.tk.call("tk", "windowingsystem") == "aqua"
-    context_click = "<Button-2>" if is_macos else "<Button-3>"
-    update_calendar_day()  # Same renderer is used at startup and after navigation.
-    switch_calendar_view()
-    return window
-'''
