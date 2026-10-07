@@ -168,7 +168,8 @@ class CalendarView:
             sticky="ew"
         )
 
-        assignment_list = tk.Listbox(details_frame, height=4, font=("Arial", 12))
+        #exportselection=False keeps the selected assignment highlighted while typing in the text box
+        assignment_list = tk.Listbox(details_frame, height=4, font=("Arial", 12), exportselection=False)
         assignment_list.grid(row=1, column=0, sticky="ew", pady=5)
 
         scrollbar = tk.Scrollbar(details_frame, command=assignment_list.yview)
@@ -180,9 +181,53 @@ class CalendarView:
             textvariable=self.assignment_manager.status,
             anchor="w",
             wraplength=1000
-        ).grid(row=2, column=0, sticky="ew", pady=6)
+        ).grid(row=3, column=0, sticky="ew", pady=6)
 
-        self.assignment_manager.attach_details_widgets(selected_date_label, assignment_list)
+        #Text box under the list: type an assignment for the selected date,
+        #then press Enter or click Add
+        assignment_entry = tk.Entry(details_frame, font=("Arial", 12))
+        assignment_entry.grid(row=2, column=0, sticky="ew", pady=(0, 5))
+        assignment_entry.bind("<Return>", lambda event: self.submit_assignment(assignment_entry))
+
+        #Buttons next to the text box:
+        #Add (becomes Save while editing), plus Edit / Remove for the assignment selected in the list
+        #(double-click an assignment to edit it, Delete key removes it, Escape cancels an edit)
+        button_frame = tk.Frame(details_frame)
+        button_frame.grid(row=2, column=1, padx=(5, 0), pady=(0, 5))
+
+        add_button = tk.Button(
+            button_frame,
+            text="Add",
+            font=("Arial", 12),
+            command=lambda: self.submit_assignment(assignment_entry)
+        )
+        add_button.grid(row=0, column=0)
+
+        tk.Button(
+            button_frame,
+            text="Edit",
+            font=("Arial", 12),
+            command=self.assignment_manager.start_edit
+        ).grid(row=0, column=1, padx=(5, 0))
+
+        tk.Button(
+            button_frame,
+            text="Remove",
+            font=("Arial", 12),
+            command=self.assignment_manager.remove_selected
+        ).grid(row=0, column=2, padx=(5, 0))
+
+        assignment_list.bind("<Double-Button-1>", lambda event: self.assignment_manager.start_edit())
+        assignment_list.bind("<Delete>", lambda event: self.assignment_manager.remove_selected())
+        assignment_list.bind("<BackSpace>", lambda event: self.assignment_manager.remove_selected())
+        assignment_entry.bind("<Escape>", lambda event: self.assignment_manager.cancel_edit())
+
+        self.assignment_manager.attach_details_widgets(selected_date_label, assignment_list, assignment_entry, add_button)
+
+    #This adds the typed text as an assignment, then clears the text box if it worked
+    def submit_assignment(self, entry):
+        if self.assignment_manager.add_from_text(entry.get()):
+            entry.delete(0, tk.END)
 
     #This will generate Calendar Days (Days of a month) when program first run
     def create_calendardays_label(self):
@@ -415,8 +460,12 @@ class CalendarView:
                 if is_blocked:
                     info_lines.append("BLOCKED")
                 if day_assignments:
-                    count = len(day_assignments)
-                    info_lines.append(f"{count} assignment" if count == 1 else f"{count} assignments")
+                    #Show the first 2 assignment names in the date's box, then "+N more"
+                    for assignment in day_assignments[:2]:
+                        title = assignment["title"]
+                        info_lines.append("- " + (title if len(title) <= 22 else title[:21] + "..."))
+                    if len(day_assignments) > 2:
+                        info_lines.append(f"+{len(day_assignments) - 2} more")
 
                 info_label = None
                 if info_lines:
