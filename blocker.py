@@ -17,7 +17,7 @@ class Blocker:
     def __init__(self, parent):
         self.parent = parent #Parent is the App window
 
-        #** edit these two lists to change what is blocked at startup
+        #** these two lists are what is blocked at startup (both can also be edited in the sidebar)
         self.blocked_sites = ["youtube.com", "discord.com"]
         self.blocked_apps = ["Discord"]
 
@@ -41,9 +41,26 @@ class Blocker:
         self.default_bg = self.button_blocker.cget("background")
         self.default_fg = self.button_blocker.cget("foreground")
 
+        #Small frame to add/remove blocked websites without touching code
+        self.sites_frame = tk.Frame(sidebar_frame)
+        self.sites_frame.grid(row=4, column=0, pady=(10, 0))
+
+        tk.Label(self.sites_frame, text="Blocked Sites", font=("Arial", 10)).pack()
+
+        self.site_listbox = tk.Listbox(self.sites_frame, height=3, width=16)
+        self.site_listbox.pack()
+
+        self.site_entry = tk.Entry(self.sites_frame, width=16)
+        self.site_entry.pack(pady=(5, 0))
+
+        tk.Button(self.sites_frame, text="Add Site", command=self.add_site).pack(pady=(5, 0))
+        tk.Button(self.sites_frame, text="Remove Selected", command=self.remove_site).pack(pady=(2, 0))
+
+        self.refresh_site_listbox()
+
         #Small frame to add/remove blocked apps without touching code
         self.apps_frame = tk.Frame(sidebar_frame)
-        self.apps_frame.grid(row=4, column=0, pady=(10, 10))
+        self.apps_frame.grid(row=5, column=0, pady=(10, 10))
 
         tk.Label(self.apps_frame, text="Blocked Apps", font=("Arial", 10)).pack()
 
@@ -76,16 +93,25 @@ class Blocker:
         except Exception:
             pass
 
-    #This redirects every site in blocked_sites to 127.0.0.1, which makes them unreachable
+    #This cuts our marked block (if there is one) out of the hosts file text
+    def strip_block(self, text):
+        if self.HOSTS_MARK_START in text and self.HOSTS_MARK_END in text:
+            start = text.index(self.HOSTS_MARK_START)
+            end = text.index(self.HOSTS_MARK_END) + len(self.HOSTS_MARK_END)
+            text = text[:start] + text[end:]
+        return text
+
+    #This redirects every site in blocked_sites to this computer (IPv4 and IPv6), which makes them unreachable
     def block_sites(self):
         path = self.get_hosts_path()
         with open(path, "r") as f:
-            text = f.read()
+            text = self.strip_block(f.read()) #Remove the old block first so blocks never pile up
 
         lines = [self.HOSTS_MARK_START]
         for site in self.blocked_sites:
-            lines.append(f"127.0.0.1 {site}")
-            lines.append(f"127.0.0.1 www.{site}")
+            for name in (site, f"www.{site}"):
+                lines.append(f"127.0.0.1 {name}")
+                lines.append(f"::1 {name}") #Without this a browser can still reach the site over IPv6
         lines.append(self.HOSTS_MARK_END)
 
         with open(path, "w") as f:
@@ -99,10 +125,8 @@ class Blocker:
             text = f.read()
 
         if self.HOSTS_MARK_START in text and self.HOSTS_MARK_END in text:
-            start = text.index(self.HOSTS_MARK_START)
-            end = text.index(self.HOSTS_MARK_END) + len(self.HOSTS_MARK_END)
             with open(path, "w") as f:
-                f.write(text[:start] + text[end:])
+                f.write(self.strip_block(text))
         self.flush_dns()
 
     #RUNNING PROCESSES (apps)
@@ -121,6 +145,50 @@ class Blocker:
                 continue
         self.check_job = self.parent.after(2000, self.check_blocked_apps)
 
+    #WEBSITE LIST
+    #This turns what was typed (like https://www.TikTok.com/foo) into a plain domain (tiktok.com)
+    def clean_site(self, text):
+        site = text.strip().lower()
+        for prefix in ("https://", "http://"):
+            if site.startswith(prefix):
+                site = site[len(prefix):]
+        site = site.split("/")[0]
+        if site.startswith("www."):
+            site = site[4:]
+        return site
+
+    #This keeps the site listbox in sync with blocked_sites
+    def refresh_site_listbox(self):
+        self.site_listbox.delete(0, tk.END)
+        for site in self.blocked_sites:
+            self.site_listbox.insert(tk.END, site)
+
+    #If blocking is already on, rewrite the hosts file so a change applies right away
+    def reapply_sites(self):
+        if self.blocking_active:
+            try:
+                self.block_sites()
+            except PermissionError:
+                pass
+
+    #This adds whatever is typed in the site entry box to blocked_sites
+    def add_site(self):
+        site = self.clean_site(self.site_entry.get())
+        if site and site not in self.blocked_sites:
+            self.blocked_sites.append(site)
+            self.refresh_site_listbox()
+            self.reapply_sites()
+        self.site_entry.delete(0, tk.END)
+
+    #This removes the site selected in the listbox from blocked_sites
+    def remove_site(self):
+        selection = self.site_listbox.curselection()
+        if selection:
+            self.blocked_sites.pop(selection[0])
+            self.refresh_site_listbox()
+            self.reapply_sites()
+
+    #APP LIST
     #This keeps the listbox in sync with blocked_apps
     def refresh_app_listbox(self):
         self.app_listbox.delete(0, tk.END)
