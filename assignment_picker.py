@@ -65,12 +65,17 @@ class AssignmentManager:
         # None here so this class works even before that's wired up.
         self.selected_date_label = None
         self.assignment_list = None
+        self.assignment_entry = None #Text box for typing a new assignment
+        self.add_button = None #Button next to the text box (says Add, or Save while editing)
+        self.editing_index = None #Which assignment of the selected date is being edited, if any
 
-    def attach_details_widgets(self, selected_date_label, assignment_list):
+    def attach_details_widgets(self, selected_date_label, assignment_list, assignment_entry=None, add_button=None):
         #Point this at the widgets that show the selected
         #date and its assignment list, then do an initial render
         self.selected_date_label = selected_date_label
         self.assignment_list = assignment_list
+        self.assignment_entry = assignment_entry
+        self.add_button = add_button
         self.update_selected_details()
 
     def notify_change(self):
@@ -87,8 +92,10 @@ class AssignmentManager:
         return date.strftime("%A, %B %d, %Y")
 
     def assignment_text(self, assignment):
-        time_text = assignment["time"] or "No time set"
-        return f"{time_text} - {assignment['title']}"
+        #Only show a time in front of the name when one was set
+        if not assignment["time"]:
+            return assignment["title"]
+        return f"{assignment['time']} - {assignment['title']}"
 
     def normalize_time(self, value):
         """Return HH:MM, allow blank for no time, or raise ValueError."""
@@ -210,6 +217,84 @@ class AssignmentManager:
         #update_calendar_day()
         self.status.set(f"Updated time for '{self.assignment['title']}' on {date.isoformat()}.")
     
+    #Switch the button next to the text box between "Add" (new assignment) and "Save" (editing one)
+    def set_editing(self, index):
+        self.editing_index = index
+        if self.add_button is not None:
+            self.add_button.config(text="Save" if index is not None else "Add")
+
+    #Stop editing and clear the text box (Escape, or clicking a different date)
+    def cancel_edit(self):
+        if self.editing_index is not None:
+            self.set_editing(None)
+            if self.assignment_entry is not None:
+                self.assignment_entry.delete(0, tk.END)
+
+    #Load the selected assignment's name into the text box so it can be changed
+    def start_edit(self):
+        items = self.assignments.get(self.selected_date, [])
+        selection = self.assignment_list.curselection() if self.assignment_list else ()
+        if not items or not selection:
+            self.status.set("Click an assignment in the list first, then press Edit.")
+            return
+
+        index = selection[0]
+        self.set_editing(index)
+        self.assignment_entry.delete(0, tk.END)
+        self.assignment_entry.insert(0, items[index]["title"])
+        self.assignment_entry.focus_set()
+        self.status.set("Change the name, then press Enter or Save (Escape to cancel).")
+
+    #Delete the assignment selected in the list from the selected date
+    def remove_selected(self):
+        date = self.selected_date
+        items = self.assignments.get(date, [])
+        selection = self.assignment_list.curselection() if self.assignment_list else ()
+        if not items or not selection:
+            self.status.set("Click an assignment in the list first, then press Remove.")
+            return
+
+        removed = items.pop(selection[0])
+        if not items:
+            del self.assignments[date]
+        self.cancel_edit() #The list shifted, so any edit in progress is stopped
+        self.update_selected_details()
+        self.notify_change()
+        self.status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
+
+    #Add an assignment typed in the text box under the list to the selected date
+    #(or save the new name if an assignment is being edited)
+    #Returns True if it worked, so the caller knows whether to clear the text box
+    def add_from_text(self, text):
+        date = self.selected_date
+        title = " ".join(text.split())
+        if not title:
+            return False
+
+        #Editing keeps the assignment's time and only changes its name
+        #(allowed on blocked dates too, since existing assignments can still be managed)
+        if self.editing_index is not None:
+            items = self.assignments.get(date, [])
+            if self.editing_index >= len(items):
+                self.set_editing(None)
+                return False
+            items[self.editing_index]["title"] = title
+            self.set_editing(None)
+            self.update_selected_details()
+            self.notify_change()
+            self.status.set(f"Updated '{title}' on {date.isoformat()}.")
+            return True
+
+        if date in self.blocked_dates:
+            self.status.set("This date is blocked. Unblock it before adding an assignment.")
+            return False
+
+        self.assignments.setdefault(date, []).append({"title": title, "time": ""})
+        self.update_selected_details()
+        self.notify_change() #Redraws the calendar so the date's box shows the new assignment
+        self.status.set(f"Added '{title}' to {date.isoformat()}.")
+        return True
+
     # SELECT A DATE AND OPEN ITS CONTEXT MENU
     def update_selected_details(self):
         if self.selected_date_label is None or self.assignment_list is None:
@@ -224,12 +309,15 @@ class AssignmentManager:
         for assignment in items:
             self.assignment_list.insert(tk.END, self.assignment_text(assignment))
         if not items:
-            self.assignment_list.insert(tk.END, "No assignments on this date.")
+            self.assignment_list.insert(tk.END, "No assignments today. Enter assignments:")
 
 
     def select_date(self, date):
         self.selected_date = date
+        self.cancel_edit() #Picking another date stops any edit in progress
         self.update_selected_details()
+        if self.assignment_entry is not None:
+            self.assignment_entry.focus_set() #Ready to type right after clicking a date
         #Cell restyling (highlight border) is CalendarView part
         #since it owns the frams - on_change triggers that redraw
         self.notify_change()
