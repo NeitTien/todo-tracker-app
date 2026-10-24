@@ -7,6 +7,7 @@ import settings
 import dashboard_view
 import calendar_view
 import sidebar_view
+import blocker #** BLOCKER FEATURE
 
 class App(tk.Tk):
     def __init__(self):
@@ -45,8 +46,11 @@ class App(tk.Tk):
         #Settings Option object
         self.settings = settings.Settings(self)
 
+        #** BLOCKER FEATURE: Blocker object (blocks sites/apps)
+        self.blocker = blocker.Blocker(self)
+
         #Sidebar View object
-        self.sidebar = sidebar_view.SidebarView(self, self.calendar, self.dashboard, self.settings)
+        self.sidebar = sidebar_view.SidebarView(self, self.calendar, self.dashboard, self.settings, self.blocker) #** blocker passed in
 
     def some_logic(self):
         if self.settings.get_default_view() == "calendar":

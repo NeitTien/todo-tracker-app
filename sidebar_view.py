@@ -8,11 +8,12 @@ import calendar_view
 import dashboard_view
 
 class SidebarView:
-    def __init__(self, parent, calendar, dashboard, settings):
+    def __init__(self, parent, calendar, dashboard, settings, blocker): #** blocker added
         self.parent = parent
         self.calendar = calendar
         self.dashboard = dashboard
         self.settings = settings
+        self.blocker = blocker #** BLOCKER FEATURE
 
         #Execute those functions
         self.create_widgets()
@@ -56,6 +57,9 @@ class SidebarView:
             command=lambda: self.settings.open_settings()
         )
         self.button_settings.grid(row=2, column=0, pady=(0, 30))
+
+        #** BLOCKER FEATURE: Blocker button + blocked-apps list go in the sidebar
+        self.blocker.create_widgets(self.sidebar_view)
 
     def switch_calendar_view(self):
         self.calendar.calendar_view.tkraise()
