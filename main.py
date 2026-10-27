@@ -41,7 +41,7 @@ class App(tk.Tk):
         self.calendar = calendar_view.CalendarView(self.main_frame)
 
         #Dashboard View object
-        self.dashboard = dashboard_view.DashboardView(self.main_frame)
+        self.dashboard = dashboard_view.DashboardView(self.main_frame, self.calendar.assignment_manager)
 
         #Settings Option object
         self.settings = settings.Settings(self)
@@ -50,7 +50,11 @@ class App(tk.Tk):
         self.blocker = blocker.Blocker(self)
 
         #Sidebar View object
-        self.sidebar = sidebar_view.SidebarView(self, self.calendar, self.dashboard, self.settings, self.blocker) #** blocker passed in
+        self.sidebar = sidebar_view.SidebarView(self, self.calendar, self.dashboard, self.settings, self.blocker) 
+        #** blocker passed in
+
+        #Refresh on_change
+        self.calendar.assignment_manager.on_change = self.refresh_views
 
     def some_logic(self):
         if self.settings.get_default_view() == "calendar":
@@ -66,6 +70,11 @@ class App(tk.Tk):
         #Main Frame Grid behavior
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
+    def refresh_views(self):
+        print("Refreshing both views")
+        self.calendar.update_calendar_day()
+        self.dashboard.refresh_dashboard()
+
 
 
 

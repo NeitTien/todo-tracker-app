@@ -338,6 +338,7 @@ class CalendarView:
 
                 #checking the state of the day from AssignmentManager
                 day_assignments = self.assignment_manager.get_assignments(day_obj)
+                #print(day_assignments)
                 is_blocked = self.assignment_manager.is_blocked(day_obj)
                 is_selected = (day_obj == self.assignment_manager.selected_date)
 

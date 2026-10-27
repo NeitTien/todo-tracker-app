@@ -83,6 +83,8 @@ class AssignmentManager:
             self.on_change()
 
     def get_assignments(self, date):
+        #Debug purpose
+        #print(self.assignments)
         return self.assignments.get(date, [])
     
     def is_blocked(self, date):

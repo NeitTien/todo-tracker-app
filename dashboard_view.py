@@ -14,9 +14,10 @@ days = [
 ]
 
 class DashboardView:
-    def __init__(self, parent):
+    def __init__(self, parent, assignment_manager):
         #This function run when creating a DashboardView object
         self.parent = parent #Parent is main_frame
+        self.assignment_manager = assignment_manager
 
         #Execute those functions
         self.create_widgets()
@@ -120,6 +121,16 @@ class DashboardView:
     def populate_dashboard(self):
         today = datetime.date.today()
 
+
+        for day_offset in range(30):
+            due_date = today + datetime.timedelta(days=day_offset)
+
+            assignments = self.assignment_manager.get_assignments(due_date)
+
+            if assignments:
+                    self.create_date_group(due_date, assignments)
+
+        """
         assignments_by_date = {
             today: [
                 "Database Homework",
@@ -132,9 +143,12 @@ class DashboardView:
                 "Project Milestone"
             ]
         }
+        """
 
-        for due_date, assignments in assignments_by_date.items():
-            self.create_date_group(due_date, assignments)
+        #for due_date, assignments in assignments_by_date.items():
+        #self.create_date_group(due_date, assignments)
+
+        
     
     def create_date_group(self, due_date, assignments):
         date_frame = tk.Frame(self.content_frame)
@@ -167,9 +181,15 @@ class DashboardView:
 
             assignment_label = tk.Label(
                 assignment_frame,
-                text=assignment,
+                text=assignment["title"],
                 font=("Arial", 11),
                 anchor="w"
             )
             assignment_label.pack(fill="x")
+    def refresh_dashboard(self):
+        #Remove old date groups
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
 
+        #Rebuild
+        self.populate_dashboard()
