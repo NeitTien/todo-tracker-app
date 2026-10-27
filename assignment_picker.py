@@ -6,6 +6,7 @@ Uses only Python's standard library and Tkinter.
 Data is kept in memory: changing months preserves it, closing the app clears it.
 Edit time changes an assignment's due time, using a 24-hour HH:MM value.
 Blocked dates reject new assignments; existing ones can still be managed.
+Each assignment can have a difficulty (easy / medium / hard) that colors its text.
 """
 
 import datetime
@@ -18,6 +19,26 @@ from tkinter import simpledialog, messagebox
 # ]
 
 #date_buttons = {} #I dont know wat this is for yet
+
+#** DIFFICULTY COLORS: an assignment's "difficulty" is "" (none), "easy", "medium" or "hard"
+#No difficulty keeps the normal text color. The shades change with the background they sit on,
+#so every color stays readable (each one has at least 4.5:1 contrast with its background)
+DIFFICULTY_CHOICES = [("None", ""), ("Easy", "easy"), ("Medium", "medium"), ("Hard", "hard")]
+DIFFICULTY_COLORS = {
+    #light background (normal dates, the assignment list, the dashboard)
+    "light":   {"easy": "#1B7F3B", "medium": "#A07800", "hard": "#C62828"},
+    #pink background (blocked dates) needs darker shades
+    "blocked": {"easy": "#0F5A26", "medium": "#6B4E00", "hard": "#9B1111"},
+    #gray background (days from the previous / next month) needs lighter shades
+    "gray":    {"easy": "#C2F7CC", "medium": "#FFEB99", "hard": "#FFE9E6"},
+}
+
+#Order assignments are listed in: hard first, then medium, easy, and no difficulty last
+DIFFICULTY_ORDER = {"hard": 0, "medium": 1, "easy": 2, "": 3}
+
+def difficulty_color(difficulty, surface="light"):
+    #Returns the text color for a difficulty, or None when there is none (use the normal color)
+    return DIFFICULTY_COLORS[surface].get(difficulty)
 
 class AssignmentManager:
     def __init__(self, parent, on_change=None):
@@ -68,14 +89,16 @@ class AssignmentManager:
         self.assignment_entry = None #Text box for typing a new assignment
         self.add_button = None #Button next to the text box (says Add, or Save while editing)
         self.editing_index = None #Which assignment of the selected date is being edited, if any
+        self.difficulty_var = None #Difficulty choice (radio buttons) next to the text box
 
-    def attach_details_widgets(self, selected_date_label, assignment_list, assignment_entry=None, add_button=None):
+    def attach_details_widgets(self, selected_date_label, assignment_list, assignment_entry=None, add_button=None, difficulty_var=None):
         #Point this at the widgets that show the selected
         #date and its assignment list, then do an initial render
         self.selected_date_label = selected_date_label
         self.assignment_list = assignment_list
         self.assignment_entry = assignment_entry
         self.add_button = add_button
+        self.difficulty_var = difficulty_var
         self.update_selected_details()
 
     def notify_change(self):
@@ -98,6 +121,21 @@ class AssignmentManager:
         if not assignment["time"]:
             return assignment["title"]
         return f"{assignment['time']} - {assignment['title']}"
+
+    #Puts a date's assignments in Hard, Medium, Easy, none order
+    #(sort is stable, so tasks with the same difficulty stay in the order they were added)
+    def sort_assignments(self, date):
+        items = self.assignments.get(date)
+        if items:
+            items.sort(key=lambda a: DIFFICULTY_ORDER.get(a.get("difficulty", ""), 3))
+
+    #The difficulty currently picked next to the text box ("" when None is picked)
+    def chosen_difficulty(self):
+        return self.difficulty_var.get() if self.difficulty_var is not None else ""
+
+    def set_chosen_difficulty(self, value):
+        if self.difficulty_var is not None:
+            self.difficulty_var.set(value)
 
     def normalize_time(self, value):
         """Return HH:MM, allow blank for no time, or raise ValueError."""
@@ -173,7 +211,16 @@ class AssignmentManager:
         if time_value is None:
             return  # Cancelling either dialog leaves the calendar data unchanged.
 
-        self.assignments.setdefault(date, []).append({"title": title, "time": time_value})
+        difficulty = DifficultyDialog(self.parent, date, title).result
+        if difficulty is None:
+            return  # Cancel leaves the calendar data unchanged ("" means no difficulty)
+
+        self.assignments.setdefault(date, []).append(
+            {"title": title, "time": time_value, "difficulty": difficulty}
+        )
+        self.sort_assignments(date)
+        self.update_selected_details()
+        self.notify_change() #Redraws the calendar so the date's box shows the new assignment
         self.status.set(f"Added '{title}' to {date.isoformat()}.")
 
     def remove_assignment(self):
@@ -225,6 +272,7 @@ class AssignmentManager:
     def cancel_edit(self):
         if self.editing_index is not None:
             self.set_editing(None)
+            self.set_chosen_difficulty("")
             if self.assignment_entry is not None:
                 self.assignment_entry.delete(0, tk.END)
 
@@ -240,8 +288,9 @@ class AssignmentManager:
         self.set_editing(index)
         self.assignment_entry.delete(0, tk.END)
         self.assignment_entry.insert(0, items[index]["title"])
+        self.set_chosen_difficulty(items[index].get("difficulty", "")) #Show its current difficulty
         self.assignment_entry.focus_set()
-        self.status.set("Change the name, then press Enter or Save (Escape to cancel).")
+        self.status.set("Change the name or difficulty, then press Enter or Save (Escape to cancel).")
 
     #Delete the assignment selected in the list from the selected date
     def remove_selected(self):
@@ -269,7 +318,7 @@ class AssignmentManager:
         if not title:
             return False
 
-        #Editing keeps the assignment's time and only changes its name
+        #Editing keeps the assignment's time and only changes its name and difficulty
         #(allowed on blocked dates too, since existing assignments can still be managed)
         if self.editing_index is not None:
             items = self.assignments.get(date, [])
@@ -277,7 +326,10 @@ class AssignmentManager:
                 self.set_editing(None)
                 return False
             items[self.editing_index]["title"] = title
+            items[self.editing_index]["difficulty"] = self.chosen_difficulty()
             self.set_editing(None)
+            self.set_chosen_difficulty("") #Back to None for the next assignment
+            self.sort_assignments(date)
             self.update_selected_details()
             self.notify_change()
             self.status.set(f"Updated '{title}' on {date.isoformat()}.")
@@ -287,7 +339,11 @@ class AssignmentManager:
             self.status.set("This date is blocked. Unblock it before adding an assignment.")
             return False
 
-        self.assignments.setdefault(date, []).append({"title": title, "time": ""})
+        self.assignments.setdefault(date, []).append(
+            {"title": title, "time": "", "difficulty": self.chosen_difficulty()}
+        )
+        self.set_chosen_difficulty("") #Back to None for the next assignment
+        self.sort_assignments(date)
         self.update_selected_details()
         self.notify_change() #Redraws the calendar so the date's box shows the new assignment
         self.status.set(f"Added '{title}' to {date.isoformat()}.")
@@ -304,8 +360,12 @@ class AssignmentManager:
         self.assignment_list.delete(0, tk.END)
 
         items = self.assignments.get(self.selected_date, [])
-        for assignment in items:
+        for index, assignment in enumerate(items):
             self.assignment_list.insert(tk.END, self.assignment_text(assignment))
+            color = difficulty_color(assignment.get("difficulty", ""))
+            if color:
+                #selectforeground keeps the color when the row is highlighted
+                self.assignment_list.itemconfig(index, foreground=color, selectforeground=color)
         if not items:
             self.assignment_list.insert(tk.END, "No assignments today. Enter assignments:")
 
@@ -370,3 +430,20 @@ class AssignmentPicker(simpledialog.Dialog):
 
     def apply(self):
         self.result = self.listbox.curselection()[0]
+
+
+class DifficultyDialog(simpledialog.Dialog):
+    """Asks how hard an assignment is. result is "" (none), "easy", "medium" or "hard"; None if cancelled."""
+
+    def __init__(self, parent, date, title):
+        self.assignment_title = title
+        super().__init__(parent, title=f"Difficulty - {date.isoformat()}")
+
+    def body(self, frame):
+        tk.Label(frame, text=f"Difficulty for: {self.assignment_title}", anchor="w").pack(anchor="w", pady=(0, 6))
+        self.choice = tk.StringVar(master=frame, value="")
+        for label, value in DIFFICULTY_CHOICES:
+            tk.Radiobutton(frame, text=label, value=value, variable=self.choice).pack(anchor="w")
+
+    def apply(self):
+        self.result = self.choice.get()
