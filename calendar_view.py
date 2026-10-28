@@ -1,8 +1,9 @@
 import tkinter as tk
 import datetime
 import calendar
+import tkinter.font as tkfont
 
-from assignment_picker import AssignmentManager
+from assignment_picker import AssignmentManager, DIFFICULTY_CHOICES, difficulty_color
 #CALENDAR GUI
 #This is enum for Months and Days
 months = [
@@ -14,6 +15,10 @@ days = [
     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
 ]
 
+
+#The most lines of text a date's box shows (assignment names, or "+N more").
+#Boxes that are too short for this many lines show fewer (see lines_per_cell)
+MAX_LINES = 5
 
 class CalendarView:
     def __init__(self, parent):
@@ -97,6 +102,8 @@ class CalendarView:
             column=0,
             sticky="nsew"
         )
+        #Redraw the dates when the window is resized, so the right number of assignments fit in each box
+        self.calendar_grid.bind("<Configure>", self.on_grid_resize)
         #No Grid scaling because we do that when we generate the days of month
 
     #Create label that display current month, year
@@ -171,7 +178,11 @@ class CalendarView:
         )
 
         #exportselection=False keeps the selected assignment highlighted while typing in the text box
-        assignment_list = tk.Listbox(details_frame, height=4, font=("Arial", 12), exportselection=False)
+        #White background / black text (like the date boxes) so the difficulty colors stay readable
+        assignment_list = tk.Listbox(
+            details_frame, height=4, font=("Arial", 12), exportselection=False,
+            background="#FFFFFF", foreground="#000000", selectbackground="#F2F7FF", selectforeground="#000000"
+        )
         assignment_list.grid(row=1, column=0, sticky="ew", pady=5)
 
         scrollbar = tk.Scrollbar(details_frame, command=assignment_list.yview)
@@ -183,7 +194,21 @@ class CalendarView:
             textvariable=self.assignment_manager.status,
             anchor="sw",
             wraplength=1000
-        ).grid(row=3, column=0, sticky="ew", pady=6)
+        ).grid(row=4, column=0, sticky="ew", pady=6)
+
+        #** DIFFICULTY: pick None / Easy / Medium / Hard before pressing Add (None = normal text color)
+        difficulty_var = tk.StringVar(master=details_frame, value="")
+        difficulty_frame = tk.Frame(details_frame)
+        difficulty_frame.grid(row=3, column=0, sticky="w", pady=(0, 5))
+        tk.Label(difficulty_frame, text="Difficulty:", font=("Arial", 12)).grid(row=0, column=0, padx=(0, 8))
+        for column, (label, value) in enumerate(DIFFICULTY_CHOICES, start=1):
+            tk.Radiobutton(
+                difficulty_frame,
+                text=label,
+                value=value,
+                variable=difficulty_var,
+                font=("Arial", 12)
+            ).grid(row=0, column=column, padx=4)
 
         #Text box under the list: type an assignment for the selected date,
         #then press Enter or click Add
@@ -224,7 +249,7 @@ class CalendarView:
         assignment_list.bind("<BackSpace>", lambda event: self.assignment_manager.remove_selected())
         assignment_entry.bind("<Escape>", lambda event: self.assignment_manager.cancel_edit())
 
-        self.assignment_manager.attach_details_widgets(selected_date_label, assignment_list, assignment_entry, add_button)
+        self.assignment_manager.attach_details_widgets(selected_date_label, assignment_list, assignment_entry, add_button, difficulty_var)
 
     #This adds the typed text as an assignment, then clears the text box if it worked
     def submit_assignment(self, entry):
@@ -297,6 +322,26 @@ class CalendarView:
         #This function change the label by edit the text config
         self.month_label.config(text=months[self.current_month - 1])
 
+    #Redraws the dates once the window stops being resized (only when the grid's size really changed)
+    def on_grid_resize(self, event):
+        size = (event.width, event.height)
+        if size == getattr(self, "last_grid_size", None):
+            return
+        self.last_grid_size = size
+        job = getattr(self, "resize_job", None)
+        if job:
+            self.calendar_grid.after_cancel(job)
+        self.resize_job = self.calendar_grid.after(150, self.update_calendar_day)
+
+    #How many lines of text fit in one date's box (a month with 6 weeks has shorter boxes than one with 5)
+    def lines_per_cell(self, week_size):
+        height = self.calendar_grid.winfo_height()
+        if height < 50: #The window is not drawn yet, so guess from the number of weeks
+            return MAX_LINES if week_size <= 5 else MAX_LINES - 1
+        line_height = tkfont.Font(font=("Arial", 9)).metrics("linespace")
+        usable = height / week_size - 10 #Leave room for the border and padding
+        return max(3, min(MAX_LINES, int(usable // line_height)))
+
     #For Calendar Day (Days of a month)
     def update_calendar_day(self):
         #This for-loop will destroy the previous grid
@@ -313,6 +358,7 @@ class CalendarView:
             self.current_year, self.current_month)
 
         week_size = len(self.current_day_of_month)
+        max_lines = self.lines_per_cell(week_size)
         day_of_week = len(self.current_day_of_month[0])
 
         #Expand column and row of each day
@@ -383,35 +429,58 @@ class CalendarView:
                     pady=5
                 )
 
-                #Label for BLOCKED date / assignment count
+                #Labels for BLOCKED date / assignments, one label per line so each can have its own color
+                #(text_color is the normal color; an assignment with a difficulty gets green / yellow / red)
                 #create when there is something
-                info_lines = []
                 if is_blocked:
-                    info_lines.append("BLOCKED")
-                if day_assignments:
-                    #Show the first 2 assignment names in the date's box, then "+N more"
-                    for assignment in day_assignments[:2]:
-                        title = assignment["title"]
-                        info_lines.append("- " + (title if len(title) <= 22 else title[:21] + "..."))
-                    if len(day_assignments) > 2:
-                        info_lines.append(f"+{len(day_assignments) - 2} more")
+                    surface = "blocked" #Pink background
+                elif day_obj.month != self.current_month:
+                    surface = "gray" #Other month's background
+                else:
+                    surface = "light"
 
-                info_label = None
+                info_lines = [] #Each entry is (text, color)
+                if is_blocked:
+                    info_lines.append(("BLOCKED", text_color))
+                if day_assignments:
+                    #Show as many assignment names as fit in the date's box
+                    #(if there are more, the last line is "+N more" instead of a name)
+                    name_lines = max_lines - (1 if is_blocked else 0) #BLOCKED takes one line
+                    shown = day_assignments if len(day_assignments) <= name_lines else day_assignments[:name_lines - 1]
+                    for assignment in shown:
+                        title = assignment["title"]
+                        line_color = difficulty_color(assignment.get("difficulty", ""), surface) or text_color
+                        info_lines.append(("- " + (title if len(title) <= 22 else title[:21] + "..."), line_color))
+                    if len(shown) < len(day_assignments):
+                        info_lines.append((f"+{len(day_assignments) - len(shown)} more", text_color))
+
+                info_widgets = []
                 if info_lines:
-                    info_label = tk.Label(
-                        day_frame,
-                        text="\n".join(info_lines),
-                        font=("Arial", 9),
-                        background=background_color,
-                        foreground=text_color,
-                        anchor="w",
-                        justify="left"
-                    )
-                    info_label.grid(row=1, column=0, sticky="sw", padx=5, pady=5)
+                    info_frame = tk.Frame(day_frame, background=background_color)
+                    #Tasks start at the top of the date's box (the day number sits in the top right corner)
+                    info_frame.grid(row=0, column=0, rowspan=2, sticky="nw", padx=5, pady=(4, 2))
+                    info_widgets.append(info_frame)
+                    for line_text, line_color in info_lines:
+                        line_label = tk.Label(
+                            info_frame,
+                            text=line_text,
+                            font=("Arial", 9),
+                            background=background_color,
+                            foreground=line_color,
+                            anchor="w",
+                            justify="left",
+                            #No extra padding/border, so the lines sit close together
+                            borderwidth=0,
+                            highlightthickness=0,
+                            padx=0,
+                            pady=0
+                        )
+                        line_label.pack(anchor="w")
+                        info_widgets.append(line_label)
 
                 #Click + right-click bindings. Bound to the frame AND its
                 #labels
-                clickable_widgets = [day_frame, day_label] + ([info_label] if info_label else [])
+                clickable_widgets = [day_frame, day_label] + info_widgets
                 for widget in clickable_widgets:
                     widget.bind(
                         "<Button-1>",
