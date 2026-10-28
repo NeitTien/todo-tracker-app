@@ -14,8 +14,9 @@ class Blocker:
     HOSTS_MARK_START = "# blocker START"
     HOSTS_MARK_END = "# blocker END"
 
-    def __init__(self, parent):
+    def __init__(self, parent, on_change=None):
         self.parent = parent #Parent is the App window
+        self.on_change = on_change #ADDED: report list edits to main.py for saving.
 
         #** these two lists are what is blocked at startup (both can also be edited in the sidebar)
         self.blocked_sites = ["youtube.com", "discord.com"]
@@ -178,6 +179,8 @@ class Blocker:
             self.blocked_sites.append(site)
             self.refresh_site_listbox()
             self.reapply_sites()
+            if self.on_change:
+                self.on_change()
         self.site_entry.delete(0, tk.END)
 
     #This removes the site selected in the listbox from blocked_sites
@@ -187,6 +190,8 @@ class Blocker:
             self.blocked_sites.pop(selection[0])
             self.refresh_site_listbox()
             self.reapply_sites()
+            if self.on_change:
+                self.on_change()
 
     #APP LIST
     #This keeps the listbox in sync with blocked_apps
@@ -201,6 +206,8 @@ class Blocker:
         if name and name.lower() not in [a.lower() for a in self.blocked_apps]:
             self.blocked_apps.append(name)
             self.refresh_app_listbox()
+            if self.on_change:
+                self.on_change()
         self.app_entry.delete(0, tk.END)
 
     #This removes the app selected in the listbox from blocked_apps
@@ -209,6 +216,8 @@ class Blocker:
         if selection:
             self.blocked_apps.pop(selection[0])
             self.refresh_app_listbox()
+            if self.on_change:
+                self.on_change()
 
     #This is the Blocker button's command: flips blocking on/off and updates the button
     def toggle_blocker(self):

@@ -1,5 +1,6 @@
 import json
 import tkinter as tk
+from tkinter import messagebox
 from pathlib import Path
 
 #This is for debug because I use the file
@@ -13,6 +14,7 @@ else:
 class Settings:
     def __init__(self, parent):
         self.parent = parent
+        self.storage = getattr(parent, "storage", None) #ADDED: shared user storage.
         
 
     def open_settings(self):
@@ -37,10 +39,14 @@ class Settings:
         self.save_button.grid(row=1, column=0, pady=20, sticky="s")
 
     def load_settings(self):
+        if self.storage is not None:
+            return self.storage.load_settings()
         with open(SETTINGS_FILE, "r") as file:
             return json.load(file)
 
     def save_settings(self, settings):
+        if self.storage is not None:
+            return self.storage.save_settings(settings)
         with open(SETTINGS_FILE, "w") as file:
             return json.dump(settings, file, indent=4)
 
@@ -102,7 +108,11 @@ class Settings:
         settings["default_view"] = self.default_view.get()
 
         #Write the setting to JSON file
-        self.save_settings(settings)
+        try:
+            self.save_settings(settings)
+        except (OSError, ValueError, TypeError) as error:
+            messagebox.showerror("Could not save settings", str(error), parent=self.settings_view)
+            return
 
         #Close the settings window
         self.settings_view.destroy()
