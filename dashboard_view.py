@@ -1,6 +1,7 @@
 import tkinter as tk
 import datetime
 import calendar
+from assignment_picker import difficulty_color
 
 #DASHBOARD GUI
 #This is enum for Months and Days
@@ -186,6 +187,13 @@ class DashboardView:
                 anchor="w"
             )
             assignment_label.pack(fill="x")
+
+            #** DIFFICULTY: color the title green / yellow / red (white card keeps it readable);
+            #no difficulty keeps the normal look
+            color = difficulty_color(assignment.get("difficulty", ""))
+            if color:
+                assignment_frame.config(background="#FFFFFF")
+                assignment_label.config(background="#FFFFFF", foreground=color)
     def refresh_dashboard(self):
         #Remove old date groups
         for widget in self.content_frame.winfo_children():
