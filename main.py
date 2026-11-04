@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import messagebox
+from app_storage import AppStorage
 import calendar
 import datetime
 from pathlib import Path
@@ -22,10 +24,31 @@ class App(tk.Tk):
         self.icon = tk.PhotoImage(file=self.icon_path) #icon object
         self.iconphoto(True, self.icon) #True mean use the icon as default for this
 
+        #Storage is separate from the original views.
+        self.storage = AppStorage(self.BASE_DIR)
+        self.storage_ready = False
+        self.autosave_job = None
+
         #Execute these function
         self.create_frames()
+        #Keep the existing close handler, including any blocker cleanup.
+        self.original_close_command = self.protocol("WM_DELETE_WINDOW")
+        try:
+            self.storage.load_data(self)
+        except (OSError, ValueError, TypeError) as error:
+            messagebox.showerror(
+                "Could not load progress",
+                f"{error}\n\nSave file: {self.storage.data_file}\n"
+                "The existing save has not been overwritten.",
+                parent=self,
+            )
+            self.finish_close()
+            raise SystemExit(1)
+        self.storage_ready = True
+        self.protocol("WM_DELETE_WINDOW", self.close_app)
         self.some_logic()
         self.app_scaling()
+        self.autosave_job = self.after(1000, self.autosave_progress)
     
     def create_frames(self):
         #Main Frame with the App as Parent
@@ -74,6 +97,48 @@ class App(tk.Tk):
         print("Refreshing both views")
         self.calendar.update_calendar_day()
         self.dashboard.refresh_dashboard()
+        self.save_progress()
+
+    def save_progress(self, show_error=True):
+        if not self.storage_ready:
+            return False
+        try:
+            self.storage.save_data(self)
+        except (OSError, ValueError, TypeError) as error:
+            if show_error:
+                messagebox.showerror(
+                    "Could not save progress",
+                    f"{error}\n\nSave file: {self.storage.data_file}\n"
+                    "Keep Limiter open and try again after fixing the problem.",
+                    parent=self,
+                )
+            else:
+                self.calendar.assignment_manager.status.set(
+                    "Progress could not be saved. Keep Limiter open and check the save folder."
+                )
+            return False
+        return True
+
+    def autosave_progress(self):
+        #Also captures month navigation and compatible blocker-list changes.
+        #AppStorage skips disk writes when the data has not changed.
+        self.autosave_job = None
+        self.save_progress(show_error=False)
+        self.autosave_job = self.after(1000, self.autosave_progress)
+
+    def close_app(self):
+        if self.save_progress():
+            self.finish_close()
+
+    def finish_close(self):
+        if self.autosave_job is not None:
+            self.after_cancel(self.autosave_job)
+            self.autosave_job = None
+        if self.original_close_command:
+            #Run the original Tk close callback, preserving blocker cleanup.
+            self.tk.call("eval", self.original_close_command)
+        else:
+            self.destroy()
 
 
 
@@ -86,5 +151,6 @@ class App(tk.Tk):
 place_holder_value=1
 
 #This make the app stay opened and not instantly close after opening
-app = App()
-app.mainloop()
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
