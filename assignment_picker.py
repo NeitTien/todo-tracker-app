@@ -359,7 +359,7 @@ class AssignmentPicker(simpledialog.Dialog):
         self.listbox.pack(side="left", fill="both", expand=True)
         scrollbar.config(command=self.listbox.yview)
         for item in self.items:
-            self.listbox.insert(tk.END, assignment_text(item))
+            self.listbox.insert(tk.END, self.assignment_text(item))
         self.listbox.selection_set(0)
         return self.listbox
 
