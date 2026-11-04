@@ -1,9 +1,9 @@
 """Limiter calendar with a right-click menu on every date.
 
-Run: python limiter_calendar.py
+Run: python main.py
 Uses only Python's standard library and Tkinter.
 
-Data is kept in memory: changing months preserves it, closing the app clears it.
+main.py connects AppStorage so assignments and blocked dates survive closing the app.
 Edit time changes an assignment's due time, using a 24-hour HH:MM value.
 Blocked dates reject new assignments; existing ones can still be managed.
 Each assignment can have a difficulty (easy / medium / hard) that colors its text.
@@ -232,6 +232,9 @@ class AssignmentManager:
         if not self.assignments[date]:
             del self.assignments[date]
 
+        self.cancel_edit() #Removing an item can change the index being edited.
+        self.update_selected_details()
+        self.notify_change()
         self.status.set(f"Removed '{removed['title']}' from {date.isoformat()}.")
 
     def block_out(self):
@@ -242,6 +245,8 @@ class AssignmentManager:
         else:
             self.blocked_dates.add(date)
             message = f"Blocked {date.isoformat()}. Existing assignments are kept."
+        self.update_selected_details()
+        self.notify_change()
         self.status.set(message)
 
     def edit_time(self):
@@ -260,6 +265,8 @@ class AssignmentManager:
         if new_time is None:
             return
         self.assignment["time"] = new_time
+        self.update_selected_details()
+        self.notify_change()
         self.status.set(f"Updated time for '{self.assignment['title']}' on {date.isoformat()}.")
     
     #Switch the button next to the text box between "Add" (new assignment) and "Save" (editing one)
@@ -421,7 +428,8 @@ class AssignmentPicker(simpledialog.Dialog):
         self.listbox.pack(side="left", fill="both", expand=True)
         scrollbar.config(command=self.listbox.yview)
         for item in self.items:
-            self.listbox.insert(tk.END, assignment_text(item))
+            text = f"{item['time']} - {item['title']}" if item["time"] else item["title"]
+            self.listbox.insert(tk.END, text)
         self.listbox.selection_set(0)
         return self.listbox
 
