@@ -96,15 +96,16 @@ class App(tk.Tk):
         #Main Frame Grid behavior
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
+
     def refresh_views(self):
-        t = time.perf_counter()
+        #t = time.perf_counter()
         self.calendar.update_calendar_day()
-        t0 = time.perf_counter()
+        #t0 = time.perf_counter()
         self.dashboard.refresh_dashboard()
-        t1 = time.perf_counter()
+        #t1 = time.perf_counter()
         self.save_progress()
-        t2 = time.perf_counter()
-        print(f"calendar {1000*(t0-t):.1f} | dashboard {1000*(t1-t0):.1f} | save {1000*(t2-t1):.1f} ms")
+        #t2 = time.perf_counter()
+        #print(f"calendar {1000*(t0-t):.1f} | dashboard {1000*(t1-t0):.1f} | save {1000*(t2-t1):.1f} ms")
 
     def save_progress(self, show_error=True):
         if not self.storage_ready:
