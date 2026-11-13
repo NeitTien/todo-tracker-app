@@ -3,6 +3,8 @@ import datetime
 import calendar
 import tkinter.font as tkfont
 
+import time
+
 from assignment_picker import AssignmentManager, DIFFICULTY_CHOICES, difficulty_color
 #CALENDAR GUI
 #This is enum for Months and Days
@@ -43,6 +45,7 @@ class CalendarView:
         #Create the frame
         self.frame = tk.Frame(parent)
 
+        self.day_frames = {}
         #Execute those functions
         self.create_widgets() #Frame
         self.create_basic_label()
@@ -342,6 +345,13 @@ class CalendarView:
         usable = height / week_size - 10 #Leave room for the border and padding
         return max(3, min(MAX_LINES, int(usable // line_height)))
 
+    def update_selected_date(self):
+        tao = time.perf_counter()
+        selected = self.assignment_manager.selected_date
+        for date, frame in self.day_frames.items():
+            frame.configure(highlightthickness=3 if date == selected else 1)
+        print(f"seg {1000*(time.perf_counter() - tao):.2f} ms")
+
     #For Calendar Day (Days of a month)
     def update_calendar_day(self):
         #This for-loop will destroy the previous grid
@@ -371,6 +381,7 @@ class CalendarView:
         for column in range(day_of_week):
             self.calendar_grid.grid_columnconfigure(column, weight=1, uniform="col")
 
+        self.day_frames = {}
         for week in range(0, week_size):
             for day in range(0, day_of_week):
                 day_obj = self.current_day_of_month[week][day]
@@ -412,6 +423,8 @@ class CalendarView:
                 day_frame.grid_rowconfigure(1, weight=1)
                 #Prevent the frame from auto shrinking to fits the content inside
                 #day_frame.grid_propagate(False) 
+
+                self.day_frames[day_obj] = day_frame
 
                 day_label = tk.Label(
                     day_frame,

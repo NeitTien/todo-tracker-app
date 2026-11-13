@@ -41,10 +41,11 @@ def difficulty_color(difficulty, surface="light"):
     return DIFFICULTY_COLORS[surface].get(difficulty)
 
 class AssignmentManager:
-    def __init__(self, parent, on_change=None):
+    def __init__(self, parent, on_change=None, on_select=None):
         
         self.parent = parent #Parent is the main_frame
         self.on_change = on_change
+        self.on_select = on_select
 
         #Create variable related to the assignment
         self.assignments = {}
@@ -104,6 +105,10 @@ class AssignmentManager:
     def notify_change(self):
         if self.on_change:
             self.on_change()
+
+    def notify_select(self):
+        if self.on_select:
+            self.on_select()
 
     def get_assignments(self, date):
         #Debug purpose
@@ -385,7 +390,9 @@ class AssignmentManager:
             self.assignment_entry.focus_set() #Ready to type right after clicking a date
         #Cell restyling (highlight border) is CalendarView part
         #since it owns the frams - on_change triggers that redraw
-        self.notify_change()
+
+        # self.notify_change()
+        self.notify_select()
 
 
     def show_menu(self, event, date):
