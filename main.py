@@ -140,16 +140,6 @@ class App(tk.Tk):
         else:
             self.destroy()
 
-
-
-
-    
-#To-do List View with Main Frame as Parent (currently unused)
-#todolist_view = tk.Frame(main_frame)
-
-
-place_holder_value=1
-
 #This make the app stay opened and not instantly close after opening
 if __name__ == "__main__":
     app = App()
