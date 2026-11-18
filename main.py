@@ -11,6 +11,8 @@ import calendar_view
 import sidebar_view
 import blocker #** BLOCKER FEATURE
 
+import time
+
 class App(tk.Tk):
     def __init__(self):
         #This INIT a WINDOW object for Tkinter Function
@@ -78,6 +80,7 @@ class App(tk.Tk):
 
         #Refresh on_change
         self.calendar.assignment_manager.on_change = self.refresh_views
+        self.calendar.assignment_manager.on_select = self.calendar.update_selected_date
 
     def some_logic(self):
         if self.settings.get_default_view() == "calendar":
@@ -93,11 +96,16 @@ class App(tk.Tk):
         #Main Frame Grid behavior
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
+
     def refresh_views(self):
-        print("Refreshing both views")
+        #t = time.perf_counter()
         self.calendar.update_calendar_day()
+        #t0 = time.perf_counter()
         self.dashboard.refresh_dashboard()
+        #t1 = time.perf_counter()
         self.save_progress()
+        #t2 = time.perf_counter()
+        #print(f"calendar {1000*(t0-t):.1f} | dashboard {1000*(t1-t0):.1f} | save {1000*(t2-t1):.1f} ms")
 
     def save_progress(self, show_error=True):
         if not self.storage_ready:
@@ -139,16 +147,6 @@ class App(tk.Tk):
             self.tk.call("eval", self.original_close_command)
         else:
             self.destroy()
-
-
-
-
-    
-#To-do List View with Main Frame as Parent (currently unused)
-#todolist_view = tk.Frame(main_frame)
-
-
-place_holder_value=1
 
 #This make the app stay opened and not instantly close after opening
 if __name__ == "__main__":

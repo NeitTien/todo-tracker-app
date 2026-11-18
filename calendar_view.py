@@ -3,6 +3,8 @@ import datetime
 import calendar
 import tkinter.font as tkfont
 
+import time
+
 from assignment_picker import AssignmentManager, DIFFICULTY_CHOICES, difficulty_color
 #CALENDAR GUI
 #This is enum for Months and Days
@@ -43,6 +45,7 @@ class CalendarView:
         #Create the frame
         self.frame = tk.Frame(parent)
 
+        self.day_frames = {}
         #Execute those functions
         self.create_widgets() #Frame
         self.create_basic_label()
@@ -325,9 +328,15 @@ class CalendarView:
     #Redraws the dates once the window stops being resized (only when the grid's size really changed)
     def on_grid_resize(self, event):
         size = (event.width, event.height)
+        print("configure", size, "last", getattr(self, "last_grid_size", None))
         if size == getattr(self, "last_grid_size", None):
             return
         self.last_grid_size = size
+
+        week_size = len(getattr(self, "current_day_of_month", []))
+        if week_size and self.lines_per_cell(week_size) == getattr(self, "last_max_lines", None):
+            return
+
         job = getattr(self, "resize_job", None)
         if job:
             self.calendar_grid.after_cancel(job)
@@ -342,8 +351,14 @@ class CalendarView:
         usable = height / week_size - 10 #Leave room for the border and padding
         return max(3, min(MAX_LINES, int(usable // line_height)))
 
+    def update_selected_date(self):
+        selected = self.assignment_manager.selected_date
+        for date, frame in self.day_frames.items():
+            frame.configure(highlightthickness=3 if date == selected else 1)
+
     #For Calendar Day (Days of a month)
     def update_calendar_day(self):
+        haha = time.perf_counter()
         #This for-loop will destroy the previous grid
         #so that the calendar will not be overlapped
         #the data is not affected by this deletion
@@ -351,6 +366,7 @@ class CalendarView:
             widget.destroy()
 
         self.build_calendar_grid()
+        print(f"Duck {1000*(time.perf_counter() - haha):.2f} ms")
 
     def build_calendar_grid(self):
         #Recheck the current day of month
@@ -359,6 +375,7 @@ class CalendarView:
 
         week_size = len(self.current_day_of_month)
         max_lines = self.lines_per_cell(week_size)
+        self.last_max_lines = max_lines
         day_of_week = len(self.current_day_of_month[0])
 
         #Expand column and row of each day
@@ -371,25 +388,26 @@ class CalendarView:
         for column in range(day_of_week):
             self.calendar_grid.grid_columnconfigure(column, weight=1, uniform="col")
 
+        self.day_frames = {}
         for week in range(0, week_size):
             for day in range(0, day_of_week):
                 day_obj = self.current_day_of_month[week][day]
 
-                if day_obj.month != self.current_month:
+                other_month = day_obj.month != self.current_month
+                if other_month:
                     background_color = "#696969"
                     text_color = "#CCCCCC"
                 else:
                     background_color = "#FFFFFF"
                     text_color = "#000000"
 
-                #checking the state of the day from AssignmentManager
-                day_assignments = self.assignment_manager.get_assignments(day_obj)
-                #print(day_assignments)
                 is_blocked = self.assignment_manager.is_blocked(day_obj)
-                is_selected = (day_obj == self.assignment_manager.selected_date)
-
                 if is_blocked:
                     background_color = "#F1BABA"
+
+                #checking the state of the day from AssignmentManager
+                day_assignments = self.assignment_manager.get_assignments(day_obj)
+                is_selected = (day_obj == self.assignment_manager.selected_date)
 
                 #Frame for each day
                 day_frame = tk.Frame(
@@ -412,6 +430,8 @@ class CalendarView:
                 day_frame.grid_rowconfigure(1, weight=1)
                 #Prevent the frame from auto shrinking to fits the content inside
                 #day_frame.grid_propagate(False) 
+
+                self.day_frames[day_obj] = day_frame
 
                 day_label = tk.Label(
                     day_frame,
@@ -480,18 +500,18 @@ class CalendarView:
 
                 #Click + right-click bindings. Bound to the frame AND its
                 #labels
-                clickable_widgets = [day_frame, day_label] + info_widgets
-                for widget in clickable_widgets:
-                    widget.bind(
-                        "<Button-1>",
-                        lambda event, date=day_obj: self.assignment_manager.select_date(date)
-                    )
-                    widget.bind(
-                        self.assignment_manager.context_click,
-                        lambda event, date=day_obj: self.assignment_manager.show_menu(event, date)
-                    )
-                    if self.assignment_manager.is_macos:
-                        widget.bind(
-                            "<Control-Button-1>",
-                            lambda event, date=day_obj: self.assignment_manager.show_menu(event, date)
-                        )
+                for widget in [day_label] + info_widgets:
+                    widget.bindtags((str(day_frame),) + widget.bindtags())
+
+                day_frame.bind("<Button-1>", 
+                    lambda event,
+                    date=day_obj: self.assignment_manager.select_date(date))
+
+                day_frame.bind(self.assignment_manager.context_click,
+                    lambda event,
+                    date=day_obj: self.assignment_manager.show_menu(event, date))
+
+                if self.assignment_manager.is_macos:
+                    day_frame.bind("<Control-Button-1>",
+                    lambda event,
+                    date=day_obj: self.assignment_manager.show_menu(event, date))
