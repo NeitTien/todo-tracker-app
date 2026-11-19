@@ -28,6 +28,7 @@ class App(tk.Tk):
         self.storage = AppStorage(self.BASE_DIR)
         self.storage_ready = False
         self.autosave_job = None
+        self.reminder_job = None
 
         #Execute these function
         self.create_frames()
@@ -49,6 +50,10 @@ class App(tk.Tk):
         self.some_logic()
         self.app_scaling()
         self.autosave_job = self.after(1000, self.autosave_progress)
+        self.reminder_job = self.after(1000, self.reminder_tick) #** REMINDERS: first check right after start
+        if self.settings.get_daily_summary():
+            #** DUE TODAY: list everything due today once the window is up
+            self.after(500, self.calendar.assignment_manager.show_daily_summary)
     
     def create_frames(self):
         #Main Frame with the App as Parent
@@ -80,6 +85,11 @@ class App(tk.Tk):
         self.calendar.assignment_manager.on_change = self.refresh_views
 
     def some_logic(self):
+        #Order the loaded tasks the way the Settings say (difficulty or time)
+        self.calendar.assignment_manager.set_default_reminder(self.settings.get_default_reminder())
+        self.calendar.assignment_manager.set_sort_mode(self.settings.get_task_sort(), notify=False)
+        self.calendar.update_calendar_day()
+        self.dashboard.refresh_dashboard()
         if self.settings.get_default_view() == "calendar":
             self.sidebar.switch_calendar_view()
         else:
@@ -126,11 +136,23 @@ class App(tk.Tk):
         self.save_progress(show_error=False)
         self.autosave_job = self.after(1000, self.autosave_progress)
 
+    #** REMINDERS: every 30 seconds, show a popup for tasks whose reminder time has come
+    def reminder_tick(self):
+        self.reminder_job = None
+        try:
+            self.calendar.assignment_manager.check_reminders()
+        except Exception as error: #A reminder problem must never stop the app
+            print("Reminder check failed:", error)
+        self.reminder_job = self.after(30000, self.reminder_tick)
+
     def close_app(self):
         if self.save_progress():
             self.finish_close()
 
     def finish_close(self):
+        if self.reminder_job is not None:
+            self.after_cancel(self.reminder_job)
+            self.reminder_job = None
         if self.autosave_job is not None:
             self.after_cancel(self.autosave_job)
             self.autosave_job = None

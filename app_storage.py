@@ -183,6 +183,17 @@ class AppStorage:
             raise ValueError("Saved settings must be a JSON object.")
         if settings.get("default_view", "calendar") not in ("calendar", "dashboard"):
             raise ValueError("The default view must be calendar or dashboard.")
+        if settings.get("task_sort", "difficulty") not in ("difficulty", "time"):
+            raise ValueError("The task sort must be difficulty or time.")
+        if type(settings.get("daily_summary", True)) is not bool:
+            raise ValueError("The due-today popup setting must be true or false.")
+        if type(settings.get("reminder_enabled", True)) is not bool:
+            raise ValueError("The reminder setting must be true or false.")
+        amount = settings.get("reminder_amount", 1)
+        if type(amount) is not int or not (1 <= amount <= 999):
+            raise ValueError("The reminder amount must be a whole number from 1 to 999.")
+        if settings.get("reminder_unit", "hours") not in ("minutes", "hours", "days"):
+            raise ValueError("The reminder unit must be minutes, hours or days.")
 
     @staticmethod
     def _decode_data(data):
@@ -232,6 +243,11 @@ class AppStorage:
                         raise ValueError("Assignment times must use 24-hour HH:MM.")
                 if item.get("difficulty", "") not in ("", "easy", "medium", "hard"):
                     raise ValueError("An assignment has an invalid difficulty.")
+                notify = item.get("notify")
+                if notify is not None and (type(notify) is not int or notify < 0):
+                    raise ValueError("An assignment has an invalid reminder.")
+                if type(item.get("notified", False)) is not bool:
+                    raise ValueError("An assignment has an invalid reminder state.")
             assignments[date] = items
         settings = data.get("settings")
         AppStorage._check_settings(settings)
