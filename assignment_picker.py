@@ -7,6 +7,7 @@ main.py connects AppStorage so assignments and blocked dates survive closing the
 Edit time changes an assignment's due time, using a 24-hour HH:MM value.
 Blocked dates reject new assignments; existing ones can still be managed.
 Each assignment can have a difficulty (easy / medium / hard) that colors its text.
+Each new assignment gets a due time (11:59 PM unless the user picks another one).
 """
 
 import datetime
@@ -36,6 +37,49 @@ DIFFICULTY_COLORS = {
 #Order assignments are listed in: hard first, then medium, easy, and no difficulty last
 DIFFICULTY_ORDER = {"hard": 0, "medium": 1, "easy": 2, "": 3}
 
+#** TIME: every new assignment gets a due time, stored as 24-hour "HH:MM" text.
+#It defaults to 11:59 PM of that day, and the user can pick any hour and minute next to the text box
+DEFAULT_TIME = "23:59"
+
+#** SORT SETTING: how a date's tasks are ordered (chosen in Settings)
+#"difficulty" = Hard, Medium, Easy, none (same difficulty: the one due earliest first)
+#"time" = due soonest first (same time: Hard, Medium, Easy, none); tasks with no time go last
+SORT_MODES = ("difficulty", "time")
+DEFAULT_SORT_MODE = "difficulty"
+
+#** REMINDERS: each assignment can have "notify" = how many minutes before its due time to remind
+#the user (None / missing = no reminder) and "notified" = True once that reminder has been shown.
+#New assignments start with the default reminder (1 hour before, changeable in Settings)
+REMINDER_UNITS = {"minutes": 1, "hours": 60, "days": 1440}
+DEFAULT_REMINDER_MINUTES = 60
+MAX_REMINDER_AMOUNT = 999
+
+#90 -> (90, "minutes"), 120 -> (2, "hours"), 2880 -> (2, "days")
+def split_minutes(total):
+    for unit in ("days", "hours"):
+        if total % REMINDER_UNITS[unit] == 0:
+            return total // REMINDER_UNITS[unit], unit
+    return total, "minutes"
+
+#Wording for a number of minutes: "1 hour", "30 minutes", "2 days"
+def minutes_text(total):
+    amount, unit = split_minutes(total)
+    return f"{amount} {unit[:-1] if amount == 1 else unit}"
+
+#The date and time an assignment is due (None when it has no time)
+def due_datetime(date, assignment):
+    value = assignment.get("time", "")
+    if not value:
+        return None
+    return datetime.datetime.combine(date, datetime.time(int(value[:2]), int(value[3:5])))
+
+def time_to_12h(value):
+    #"23:59" -> "11:59 PM" ("" -> "", for assignments that have no time)
+    if not value:
+        return ""
+    hour, minute = int(value[:2]), value[3:5]
+    return f"{(hour % 12) or 12}:{minute} {'PM' if hour >= 12 else 'AM'}"
+
 def difficulty_color(difficulty, surface="light"):
     #Returns the text color for a difficulty, or None when there is none (use the normal color)
     return DIFFICULTY_COLORS[surface].get(difficulty)
@@ -51,6 +95,10 @@ class AssignmentManager:
         self.assignments = {}
         self.blocked_dates = set()
         self.selected_date = datetime.date.today()
+        self.sort_mode = DEFAULT_SORT_MODE #Set from Settings ("difficulty" or "time")
+        self.default_reminder = DEFAULT_REMINDER_MINUTES #Minutes before due for new tasks (None = no reminder)
+        self.reminder_window = None #The reminder popup, while one is open
+        self.summary_window = None #The "due today" popup shown when Limiter opens
 
 
         self.status = tk.StringVar(
@@ -91,8 +139,10 @@ class AssignmentManager:
         self.add_button = None #Button next to the text box (says Add, or Save while editing)
         self.editing_index = None #Which assignment of the selected date is being edited, if any
         self.difficulty_var = None #Difficulty choice (radio buttons) next to the text box
+        self.time_vars = None #(hour, minute, AM/PM) boxes next to the text box
+        self.reminder_vars = None #(on/off, amount, unit) of the "Remind me" row
 
-    def attach_details_widgets(self, selected_date_label, assignment_list, assignment_entry=None, add_button=None, difficulty_var=None):
+    def attach_details_widgets(self, selected_date_label, assignment_list, assignment_entry=None, add_button=None, difficulty_var=None, time_vars=None, reminder_vars=None):
         #Point this at the widgets that show the selected
         #date and its assignment list, then do an initial render
         self.selected_date_label = selected_date_label
@@ -100,6 +150,9 @@ class AssignmentManager:
         self.assignment_entry = assignment_entry
         self.add_button = add_button
         self.difficulty_var = difficulty_var
+        self.time_vars = time_vars
+        self.reminder_vars = reminder_vars
+        self.set_chosen_reminder(self.default_reminder)
         self.update_selected_details()
 
     def notify_change(self):
@@ -125,14 +178,33 @@ class AssignmentManager:
         #Only show a time in front of the name when one was set
         if not assignment["time"]:
             return assignment["title"]
-        return f"{assignment['time']} - {assignment['title']}"
+        return f"{time_to_12h(assignment['time'])} - {assignment['title']}"
 
-    #Puts a date's assignments in Hard, Medium, Easy, none order
-    #(sort is stable, so tasks with the same difficulty stay in the order they were added)
+    #Sort key for one assignment, depending on the sort mode picked in Settings
+    #(sort is stable, so tasks that tie stay in the order they were added)
+    def sort_key(self, assignment):
+        difficulty = DIFFICULTY_ORDER.get(assignment.get("difficulty", ""), 3)
+        time_value = assignment.get("time", "")
+        no_time = 0 if time_value else 1 #Tasks without a time go after the ones that have one
+        if self.sort_mode == "time":
+            return (no_time, time_value, difficulty)
+        return (difficulty, no_time, time_value)
+
+    #Puts a date's assignments in order (see sort_mode)
     def sort_assignments(self, date):
         items = self.assignments.get(date)
         if items:
-            items.sort(key=lambda a: DIFFICULTY_ORDER.get(a.get("difficulty", ""), 3))
+            items.sort(key=self.sort_key)
+
+    #Changes how tasks are ordered and re-sorts every date right away
+    def set_sort_mode(self, mode, notify=True):
+        self.sort_mode = mode if mode in SORT_MODES else DEFAULT_SORT_MODE
+        for date in self.assignments:
+            self.sort_assignments(date)
+        self.set_editing(None) #Row positions just changed, so drop any edit in progress
+        self.update_selected_details()
+        if notify:
+            self.notify_change()
 
     #The difficulty currently picked next to the text box ("" when None is picked)
     def chosen_difficulty(self):
@@ -141,6 +213,166 @@ class AssignmentManager:
     def set_chosen_difficulty(self, value):
         if self.difficulty_var is not None:
             self.difficulty_var.set(value)
+
+    #The time picked next to the text box as "HH:MM" (24-hour),
+    #or None if the hour / minute boxes hold something that is not a real time
+    def chosen_time(self):
+        if self.time_vars is None:
+            return DEFAULT_TIME
+        hour_var, minute_var, ampm_var = self.time_vars
+        try:
+            hour, minute = int(hour_var.get()), int(minute_var.get())
+        except ValueError:
+            return None
+        if not (1 <= hour <= 12 and 0 <= minute <= 59):
+            return None
+        hour = hour % 12 + (12 if ampm_var.get() == "PM" else 0)
+        return f"{hour:02d}:{minute:02d}"
+
+    #Show a time ("HH:MM") in the boxes; no time (or a missing one) shows the default, 11:59 PM
+    def set_chosen_time(self, value):
+        if self.time_vars is None:
+            return
+        hour_var, minute_var, ampm_var = self.time_vars
+        value = value or DEFAULT_TIME
+        hour = int(value[:2])
+        hour_var.set(str((hour % 12) or 12))
+        minute_var.set(value[3:5])
+        ampm_var.set("PM" if hour >= 12 else "AM")
+
+    #The reminder picked next to the text box: (True, minutes before due), (True, None) when the
+    #number is not valid, or (False, None) when reminders are switched off for this assignment
+    def chosen_reminder(self):
+        if self.reminder_vars is None:
+            return True, self.default_reminder
+        on_var, amount_var, unit_var = self.reminder_vars
+        if not on_var.get():
+            return False, None
+        try:
+            amount = int(amount_var.get())
+        except ValueError:
+            return True, None
+        if not (1 <= amount <= MAX_REMINDER_AMOUNT) or unit_var.get() not in REMINDER_UNITS:
+            return True, None
+        return True, amount * REMINDER_UNITS[unit_var.get()]
+
+    #Show a reminder (minutes before due, or None for off) in the "Remind me" row;
+    #a missing reminder (older assignments) shows the default
+    def set_chosen_reminder(self, minutes):
+        if self.reminder_vars is None:
+            return
+        on_var, amount_var, unit_var = self.reminder_vars
+        if minutes is None:
+            on_var.set(False)
+            minutes = self.default_reminder or DEFAULT_REMINDER_MINUTES
+        else:
+            on_var.set(True)
+        amount, unit = split_minutes(minutes)
+        amount_var.set(str(amount))
+        unit_var.set(unit)
+
+    #Changes the reminder new assignments start with (from Settings); None = no reminder
+    def set_default_reminder(self, minutes):
+        self.default_reminder = minutes
+        if self.editing_index is None:
+            self.set_chosen_reminder(minutes)
+
+    #Stores the reminder on an assignment. If the due time has already passed there is nothing
+    #left to remind about, so it is marked as done; otherwise it will show when its time comes.
+    def apply_reminder(self, date, assignment, minutes):
+        assignment["notify"] = minutes
+        due = due_datetime(date, assignment)
+        assignment["notified"] = due is None or due <= datetime.datetime.now()
+
+    #Checks every assignment and shows a popup for the ones whose reminder time has come.
+    #Called every 30 seconds by main.py. Returns the list of reminders that were shown.
+    def check_reminders(self, now=None):
+        now = now or datetime.datetime.now()
+        due_now = []
+        for date, items in self.assignments.items():
+            for assignment in items:
+                minutes = assignment.get("notify")
+                due = due_datetime(date, assignment)
+                if minutes is None or due is None or assignment.get("notified"):
+                    continue
+                if now >= due - datetime.timedelta(minutes=minutes):
+                    due_now.append((due, date, assignment))
+        if not due_now:
+            return []
+        due_now.sort(key=lambda entry: entry[0])
+        for due, date, assignment in due_now:
+            assignment["notified"] = True #Only remind once
+        self.notify_change() #Saves that these reminders were shown
+        self.show_reminders(due_now, now)
+        return due_now
+
+    #** DUE TODAY: the popup shown when Limiter opens, listing everything due today
+    #(in the same order as the list in the details panel). Does nothing when nothing is due today.
+    #Returns the list of tasks it showed.
+    def show_daily_summary(self, today=None, now=None):
+        now = now or datetime.datetime.now()
+        today = today or now.date()
+        items = list(self.assignments.get(today, []))
+        if not items:
+            return []
+        self.display_daily_summary(today, items, now)
+        return items
+
+    #The popup itself (non-modal, like the reminder popup)
+    def display_daily_summary(self, today, items, now):
+        MAX_SHOWN = 12
+        if self.summary_window is not None and self.summary_window.winfo_exists():
+            self.summary_window.destroy()
+        window = tk.Toplevel(self.parent)
+        self.summary_window = window
+        window.title("Due today")
+        window.attributes("-topmost", True)
+        window.resizable(False, False)
+        count = f"{len(items)} task{'s' if len(items) != 1 else ''}"
+        tk.Label(window, text=f"Due today - {count}", font=("Arial", 14, "bold")).pack(padx=20, pady=(15, 0))
+        tk.Label(window, text=self.date_text(today), font=("Arial", 11)).pack(padx=20, pady=(0, 8))
+        body = tk.Frame(window, bg="white", highlightbackground="gray", highlightthickness=1)
+        body.pack(padx=20, fill="x")
+        for assignment in items[:MAX_SHOWN]:
+            due = due_datetime(today, assignment)
+            line = self.assignment_text(assignment)
+            if due is not None and due <= now:
+                line += "  (time has passed)"
+            tk.Label(
+                body, text=line, font=("Arial", 12), bg="white", anchor="w", justify="left", wraplength=420,
+                fg=difficulty_color(assignment.get("difficulty", ""), "light") or "black"
+            ).pack(fill="x", padx=8, pady=2)
+        if len(items) > MAX_SHOWN:
+            tk.Label(body, text=f"+{len(items) - MAX_SHOWN} more", font=("Arial", 12), bg="white", anchor="w").pack(
+                fill="x", padx=8, pady=2
+            )
+        tk.Button(window, text="OK", font=("Arial", 12), width=8, command=window.destroy).pack(pady=15)
+        window.bell()
+
+    def reminder_line(self, due, assignment, now):
+        when = f"{time_to_12h(due.strftime('%H:%M'))}, {due.strftime('%a %b')} {due.day}"
+        gap = round((due - now).total_seconds() / 60)
+        if gap <= 0:
+            return f"OVERDUE: {assignment['title']} (was due {when})"
+        return f"Due in {minutes_text(gap)}: {assignment['title']} ({when})"
+
+    #The popup itself (non-modal, so the app keeps working while it is open)
+    def show_reminders(self, due_now, now):
+        lines = [self.reminder_line(due, assignment, now) for due, date, assignment in due_now]
+        if self.reminder_window is not None and self.reminder_window.winfo_exists():
+            self.reminder_window.destroy()
+        window = tk.Toplevel(self.parent)
+        self.reminder_window = window
+        window.title("Limiter reminder")
+        window.attributes("-topmost", True)
+        window.resizable(False, False)
+        tk.Label(window, text="Reminder", font=("Arial", 14, "bold")).pack(padx=20, pady=(15, 5))
+        for line in lines:
+            tk.Label(window, text=line, font=("Arial", 12), wraplength=420, justify="left").pack(
+                anchor="w", padx=20, pady=2
+            )
+        tk.Button(window, text="OK", font=("Arial", 12), width=8, command=window.destroy).pack(pady=15)
+        window.bell()
 
     def normalize_time(self, value):
         """Return HH:MM, allow blank for no time, or raise ValueError."""
@@ -212,7 +444,7 @@ class AssignmentManager:
             )
             return
 
-        time_value = self.ask_for_time(date, title)
+        time_value = self.ask_for_time(date, title, DEFAULT_TIME) #Starts at the default, 23:59 (11:59 PM)
         if time_value is None:
             return  # Cancelling either dialog leaves the calendar data unchanged.
 
@@ -220,9 +452,9 @@ class AssignmentManager:
         if difficulty is None:
             return  # Cancel leaves the calendar data unchanged ("" means no difficulty)
 
-        self.assignments.setdefault(date, []).append(
-            {"title": title, "time": time_value, "difficulty": difficulty}
-        )
+        new_assignment = {"title": title, "time": time_value, "difficulty": difficulty}
+        self.apply_reminder(date, new_assignment, self.default_reminder)
+        self.assignments.setdefault(date, []).append(new_assignment)
         self.sort_assignments(date)
         self.update_selected_details()
         self.notify_change() #Redraws the calendar so the date's box shows the new assignment
@@ -270,6 +502,7 @@ class AssignmentManager:
         if new_time is None:
             return
         self.assignment["time"] = new_time
+        self.apply_reminder(date, self.assignment, self.assignment.get("notify")) #New time = new reminder moment
         self.update_selected_details()
         self.notify_change()
         self.status.set(f"Updated time for '{self.assignment['title']}' on {date.isoformat()}.")
@@ -285,6 +518,8 @@ class AssignmentManager:
         if self.editing_index is not None:
             self.set_editing(None)
             self.set_chosen_difficulty("")
+            self.set_chosen_time(DEFAULT_TIME)
+            self.set_chosen_reminder(self.default_reminder)
             if self.assignment_entry is not None:
                 self.assignment_entry.delete(0, tk.END)
 
@@ -301,8 +536,10 @@ class AssignmentManager:
         self.assignment_entry.delete(0, tk.END)
         self.assignment_entry.insert(0, items[index]["title"])
         self.set_chosen_difficulty(items[index].get("difficulty", "")) #Show its current difficulty
+        self.set_chosen_time(items[index].get("time", "")) #...and its current time
+        self.set_chosen_reminder(items[index].get("notify")) #...and its reminder
         self.assignment_entry.focus_set()
-        self.status.set("Change the name or difficulty, then press Enter or Save (Escape to cancel).")
+        self.status.set("Change the name, difficulty, time or reminder, then press Enter or Save (Escape to cancel).")
 
     #Delete the assignment selected in the list from the selected date
     def remove_selected(self):
@@ -330,7 +567,17 @@ class AssignmentManager:
         if not title:
             return False
 
-        #Editing keeps the assignment's time and only changes its name and difficulty
+        time_value = self.chosen_time()
+        if time_value is None:
+            self.status.set("Enter an hour from 1 to 12 and a minute from 0 to 59.")
+            return False
+
+        reminder_on, reminder_minutes = self.chosen_reminder()
+        if reminder_on and reminder_minutes is None:
+            self.status.set(f"Enter a whole number from 1 to {MAX_REMINDER_AMOUNT} for the reminder.")
+            return False
+
+        #Editing changes the assignment's name, difficulty, time and reminder
         #(allowed on blocked dates too, since existing assignments can still be managed)
         if self.editing_index is not None:
             items = self.assignments.get(date, [])
@@ -339,8 +586,12 @@ class AssignmentManager:
                 return False
             items[self.editing_index]["title"] = title
             items[self.editing_index]["difficulty"] = self.chosen_difficulty()
+            items[self.editing_index]["time"] = time_value
+            self.apply_reminder(date, items[self.editing_index], reminder_minutes)
             self.set_editing(None)
             self.set_chosen_difficulty("") #Back to None for the next assignment
+            self.set_chosen_time(DEFAULT_TIME) #...and back to 11:59 PM
+            self.set_chosen_reminder(self.default_reminder) #...and the default reminder
             self.sort_assignments(date)
             self.update_selected_details()
             self.notify_change()
@@ -351,10 +602,12 @@ class AssignmentManager:
             self.status.set("This date is blocked. Unblock it before adding an assignment.")
             return False
 
-        self.assignments.setdefault(date, []).append(
-            {"title": title, "time": "", "difficulty": self.chosen_difficulty()}
-        )
+        new_assignment = {"title": title, "time": time_value, "difficulty": self.chosen_difficulty()}
+        self.apply_reminder(date, new_assignment, reminder_minutes)
+        self.assignments.setdefault(date, []).append(new_assignment)
         self.set_chosen_difficulty("") #Back to None for the next assignment
+        self.set_chosen_time(DEFAULT_TIME) #...and back to 11:59 PM
+        self.set_chosen_reminder(self.default_reminder) #...and the default reminder
         self.sort_assignments(date)
         self.update_selected_details()
         self.notify_change() #Redraws the calendar so the date's box shows the new assignment
@@ -435,7 +688,7 @@ class AssignmentPicker(simpledialog.Dialog):
         self.listbox.pack(side="left", fill="both", expand=True)
         scrollbar.config(command=self.listbox.yview)
         for item in self.items:
-            text = f"{item['time']} - {item['title']}" if item["time"] else item["title"]
+            text = f"{time_to_12h(item['time'])} - {item['title']}" if item["time"] else item["title"]
             self.listbox.insert(tk.END, text)
         self.listbox.selection_set(0)
         return self.listbox

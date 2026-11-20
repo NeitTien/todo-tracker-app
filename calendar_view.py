@@ -5,7 +5,7 @@ import tkinter.font as tkfont
 
 import time
 
-from assignment_picker import AssignmentManager, DIFFICULTY_CHOICES, difficulty_color
+from assignment_picker import AssignmentManager, DIFFICULTY_CHOICES, DEFAULT_TIME, REMINDER_UNITS, difficulty_color
 #CALENDAR GUI
 #This is enum for Months and Days
 months = [
@@ -197,7 +197,7 @@ class CalendarView:
             textvariable=self.assignment_manager.status,
             anchor="sw",
             wraplength=1000
-        ).grid(row=4, column=0, sticky="ew", pady=6)
+        ).grid(row=5, column=0, sticky="ew", pady=6)
 
         #** DIFFICULTY: pick None / Easy / Medium / Hard before pressing Add (None = normal text color)
         difficulty_var = tk.StringVar(master=details_frame, value="")
@@ -212,6 +212,47 @@ class CalendarView:
                 variable=difficulty_var,
                 font=("Arial", 12)
             ).grid(row=0, column=column, padx=4)
+
+        #** TIME: due time for the new assignment, 11:59 PM by default (pick any hour, minute and AM / PM)
+        hour_var = tk.StringVar(master=details_frame, value="11")
+        minute_var = tk.StringVar(master=details_frame, value="59")
+        ampm_var = tk.StringVar(master=details_frame, value="PM")
+        tk.Label(difficulty_frame, text="Time:", font=("Arial", 12)).grid(row=0, column=5, padx=(30, 8))
+        tk.Spinbox(
+            difficulty_frame, from_=1, to=12, width=3, wrap=True,
+            textvariable=hour_var, font=("Arial", 12), justify="center"
+        ).grid(row=0, column=6)
+        tk.Label(difficulty_frame, text=":", font=("Arial", 12)).grid(row=0, column=7)
+        tk.Spinbox(
+            difficulty_frame, from_=0, to=59, width=3, wrap=True, format="%02.0f",
+            textvariable=minute_var, font=("Arial", 12), justify="center"
+        ).grid(row=0, column=8)
+        for column, label in enumerate(("AM", "PM"), start=9):
+            tk.Radiobutton(
+                difficulty_frame,
+                text=label,
+                value=label,
+                variable=ampm_var,
+                font=("Arial", 12)
+            ).grid(row=0, column=column, padx=4)
+
+        #** REMINDER: when to be notified before the assignment is due (1 hour before by default)
+        reminder_on_var = tk.BooleanVar(master=details_frame, value=True)
+        reminder_amount_var = tk.StringVar(master=details_frame, value="1")
+        reminder_unit_var = tk.StringVar(master=details_frame, value="hours")
+        reminder_frame = tk.Frame(details_frame)
+        reminder_frame.grid(row=4, column=0, sticky="w", pady=(0, 5))
+        tk.Checkbutton(
+            reminder_frame, text="Remind me", variable=reminder_on_var, font=("Arial", 12)
+        ).grid(row=0, column=0, padx=(0, 8))
+        tk.Spinbox(
+            reminder_frame, from_=1, to=999, width=4, wrap=True,
+            textvariable=reminder_amount_var, font=("Arial", 12), justify="center"
+        ).grid(row=0, column=1)
+        reminder_unit_menu = tk.OptionMenu(reminder_frame, reminder_unit_var, *REMINDER_UNITS)
+        reminder_unit_menu.config(font=("Arial", 12), width=8)
+        reminder_unit_menu.grid(row=0, column=2, padx=4)
+        tk.Label(reminder_frame, text="before it is due", font=("Arial", 12)).grid(row=0, column=3)
 
         #Text box under the list: type an assignment for the selected date,
         #then press Enter or click Add
@@ -252,7 +293,10 @@ class CalendarView:
         assignment_list.bind("<BackSpace>", lambda event: self.assignment_manager.remove_selected())
         assignment_entry.bind("<Escape>", lambda event: self.assignment_manager.cancel_edit())
 
-        self.assignment_manager.attach_details_widgets(selected_date_label, assignment_list, assignment_entry, add_button, difficulty_var)
+        self.assignment_manager.attach_details_widgets(
+            selected_date_label, assignment_list, assignment_entry, add_button, difficulty_var,
+            (hour_var, minute_var, ampm_var), (reminder_on_var, reminder_amount_var, reminder_unit_var)
+        )
 
     #This adds the typed text as an assignment, then clears the text box if it worked
     def submit_assignment(self, entry):

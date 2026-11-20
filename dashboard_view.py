@@ -1,7 +1,7 @@
 import tkinter as tk
 import datetime
 import calendar
-from assignment_picker import difficulty_color
+from assignment_picker import difficulty_color, time_to_12h
 
 #DASHBOARD GUI
 #This is enum for Months and Days
@@ -182,7 +182,8 @@ class DashboardView:
 
             assignment_label = tk.Label(
                 assignment_frame,
-                text=assignment["title"],
+                #** TIME: show the due time in front of the name when there is one
+                text=(time_to_12h(assignment.get("time", "")) + " - " if assignment.get("time") else "") + assignment["title"],
                 font=("Arial", 11),
                 anchor="w"
             )
